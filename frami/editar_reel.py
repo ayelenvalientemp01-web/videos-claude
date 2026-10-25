@@ -3,6 +3,7 @@
 Uso: python3 editar_reel.py <dir_trabajo> <dir_salida>
 
 <dir_trabajo> debe contener: recortado.mov, segmentos.json, words_cut.json, logo.png,
+yunet.onnx (detector de rostros de OpenCV Zoo),
 fonts/Poppins-*.ttf y audio/{whoosh,pop,click}.wav (ver paso0_silencios.py y
 musica_sfx.py). Escribe en <dir_salida>: frami_reel.mp4, portada.png y subtitulos.srt.
 """
@@ -29,6 +30,9 @@ GRIS_OSCURO = (51, 51, 51)
 T0 = 0.0          # inicio de la voz (sin intro: arranca directo con el video)
 CIERRE = 2.6
 CENTRO_CARA = (0.5, 0.40)
+MENTON_Y = 1050   # altura fija del mentón en pantalla tras el reencuadre
+CM = 142          # px por centímetro en un celular típico (1920 px ≈ 13,5 cm)
+SUB_Y = MENTON_Y + 3 * CM + 46   # subtítulos 3 cm debajo del mentón (centro del texto)
 TRANSICIONES = ["zoom", "barras", "whip", "fundido"]
 
 TEXTO = (
@@ -197,7 +201,7 @@ class Subtitulos:
                 dt = tv - (g["ini"] - 0.05)
                 esc = 0.6 + 0.48 * ease_out(dt / 0.12) if dt < 0.12 else \
                     1.08 - 0.08 * ease_out((dt - 0.12) / 0.1)
-                pegar_escalado(base, img, W / 2, 1400, esc)
+                pegar_escalado(base, img, W / 2, SUB_Y, esc)
                 return
 
 
@@ -257,13 +261,10 @@ class Tarjetas:
 
 # ----------------------------------------------------------------- video base
 class Fuente:
-    """Lee recortado.mov (con corrección de color) cuadro a cuadro."""
+    """Lee recortado.mov cuadro a cuadro (sin filtros de color)."""
 
     def __init__(self, path):
-        filtro = ("eq=contrast=1.08:brightness=-0.015:gamma=0.95:saturation=1.12,"
-                  "colorbalance=rs=0.03:gs=0.01:bs=-0.03:rm=0.02:bm=-0.02,"
-                  "unsharp=5:5:0.35")
-        self.p = subprocess.Popen(["ffmpeg", "-v", "error", "-i", path, "-vf", filtro,
+        self.p = subprocess.Popen(["ffmpeg", "-v", "error", "-i", path,
                                    "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
                                   stdout=subprocess.PIPE)
         self.n = -1
@@ -279,16 +280,43 @@ class Fuente:
         return self.frame
 
 
-def lut_niveles(arr):
-    """Niveles por clip: negros firmes (la conversión HDR los deja grises) y medios
-    un poco más bajos en los clips sobreexpuestos."""
-    lum = arr.mean(axis=2)
-    negro, medio, blanco = np.percentile(lum, [0.5, 50, 99.7])
-    negro = max(0.0, negro - 6)
-    x = np.clip((np.arange(256, dtype=np.float32) - negro) / (blanco - negro), 0, 1)
-    m = clamp((medio - negro) / (blanco - negro), 0.01, 0.99)
-    g = clamp(math.log(0.76) / math.log(m), 1.0, 1.4)
-    return np.clip(255 * x ** g, 0, 255).astype(np.uint8)
+def caras(path, lim, modelo):
+    """Mediana de la posición del mentón y del centro de la cara en cada segmento."""
+    import cv2
+    det = cv2.FaceDetectorYN.create(modelo, "", (W // 2, H // 2), 0.7)
+    cap = cv2.VideoCapture(path)
+    datos = [[] for _ in lim]
+    f = 0
+    while True:
+        ok, fr = cap.read()
+        if not ok:
+            break
+        if f % 5 == 0:
+            _, res = det.detect(cv2.resize(fr, (W // 2, H // 2)))
+            if res is not None:
+                x, y, w, h = res[0][:4] * 2
+                si = next(k for k, (a, b, _) in enumerate(lim) if a <= f < b)
+                datos[si].append((y + h, x + w / 2))
+        f += 1
+    out = []
+    for d in datos:
+        d = np.array(d) if d else np.array([[MENTON_Y, W / 2]])
+        out.append((float(np.median(d[:, 0])), float(np.median(d[:, 1]))))
+    return out
+
+
+def encuadre(arr, z, menton, cx):
+    """Recorta y amplía de modo que el mentón quede en MENTON_Y y la cara centrada."""
+    cw, ch = W / z, H / z
+    x0 = clamp(cx - cw / 2, 0, W - cw)
+    y0 = clamp(menton - MENTON_Y / z, 0, H - ch)
+    return Image.fromarray(arr).transform((W, H), Image.EXTENT, (x0, y0, x0 + cw, y0 + ch),
+                                          Image.BILINEAR)
+
+
+def zoom_minimo(menton):
+    """Zoom mínimo para poder subir el mentón hasta MENTON_Y."""
+    return max(1.0, (H - MENTON_Y) / (H - menton))
 
 
 def zoom(arr, z, cx=CENTRO_CARA[0], cy=CENTRO_CARA[1]):
@@ -493,7 +521,7 @@ def main():
          "-color_trc", "bt709", f"{dt}/video_sin_audio.mp4"], stdin=subprocess.PIPE)
 
     portada_src = None
-    luts = {}
+    cara = caras(f"{dt}/recortado.mov", lim, f"{dt}/yunet.onnx")
     for i in range(n_total):
         t = i / FPS
         tv = t - T0
@@ -503,11 +531,11 @@ def main():
             nv = min(int(round(tv * FPS)), voz_frames - 1)
             arr = fuente.cuadro(nv)
             si = next(k for k, (a, b, _) in enumerate(lim) if a <= nv < b)
-            a, b, clip = lim[si]
-            if clip not in luts:
-                luts[clip] = lut_niveles(arr)
-            arr = luts[clip][arr]
-            z = (1.0 if si % 2 == 0 else 1.10) + 0.03 * (nv - a) / max(1, b - a)
+            a, b, _ = lim[si]
+            menton, cx = cara[si]
+            # punch-in alternado entre cortes consecutivos + leve acercamiento continuo
+            z = zoom_minimo(menton) + (0.0 if si % 2 == 0 else 0.08) \
+                + 0.03 * (nv - a) / max(1, b - a)
             dx, blanco, barras = 0.0, 0.0, None
             for tc, tipo in cortes:
                 u = tv - tc
@@ -521,7 +549,7 @@ def main():
                     blanco = 1 - abs(u) / 0.12
                 elif tipo == "barras" and -0.3 <= u < 0.3:
                     barras = (u + 0.3) / 0.6
-            img = zoom(arr, z).convert("RGBA")
+            img = encuadre(arr, z, menton, cx).convert("RGBA")
             if dx:
                 # whip pan: desplazamiento horizontal con desenfoque de movimiento
                 a_ = np.roll(np.asarray(img), int(dx), axis=1).astype(np.float32)
