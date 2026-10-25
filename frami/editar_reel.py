@@ -17,6 +17,8 @@ import wave
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
+import graficos
+
 W, H, FPS = 1080, 1920, 30
 SAFE_TOP, SAFE_BOTTOM = 250, H - 340
 
@@ -34,7 +36,8 @@ MENTON_Y = 1050   # altura fija del mentón en pantalla tras el reencuadre
 CM = 142          # px por centímetro en un celular típico (1920 px ≈ 13,5 cm)
 SUB_Y = MENTON_Y + 3 * CM + 46   # subtítulos 3 cm debajo del mentón (centro del texto)
 CLIP_REFERENCIA = "3980"  # clip parada: los del escritorio se igualan a su exposición
-TRANSICIONES = ["zoom", "barras", "whip", "fundido"]
+# El cuarto cambio de clip queda cubierto por la escena "complementarios" (graficos.Escena).
+TRANSICIONES = ["zoom", "barras", "whip", "escena"]
 
 TEXTO = (
     "¿Invertir en la bolsa o tener un seguro de vida? Si pensaste que tenías que tener uno u "
@@ -54,10 +57,6 @@ TARJETAS = [
     (0.0, 2.4, [[("¿BOLSA ", BLANCO), ("o ", AMARILLO), ("SEGURO?", BLANCO)]]),
     (12.6, 15.8, [[("RENTABILIDAD", BLANCO)], [("= solo ", BLANCO), ("UNO ", AMARILLO),
                                                 ("de los pasos", BLANCO)]]),
-    (16.0, 20.9, [[("Seguros de", BLANCO)], [("CAPITALIZACIÓN", AMARILLO)],
-                  [("y RETIRO", BLANCO)]]),
-    (23.0, 26.0, [[("ESTABILIDAD", BLANCO)], [("FINANCIERA", AMARILLO)]]),
-    (31.6, 34.3, [[("No compiten:", BLANCO)], [("son ", BLANCO), ("COMPLEMENTARIOS", AMARILLO)]]),
     (37.5, 40.0, [[("PLANIFICACIÓN", BLANCO)], [("FINANCIERA", AMARILLO)]]),
     (45.2, 47.1, [[("PLAN ", BLANCO), ("A MEDIDA", AMARILLO)]]),
 ]
@@ -463,8 +462,9 @@ def mezclar_audio(dt, eventos, total, out):
     sfx = np.zeros(int(total * sr) + sr)
     muestras = {k: leer_wav(f"{dt}/audio/{k}.wav")[0] for k in ("whoosh", "pop", "click")}
     ganancia = {"whoosh": 0.1, "pop": 0.13, "click": 0.09}
-    for t, k in eventos:
-        x = muestras[k] * ganancia[k]
+    for ev in eventos:
+        t, k = ev[:2]
+        x = muestras[k] * ganancia[k] * (ev[2] if len(ev) > 2 else 1.0)
         i = int(t * sr)
         sfx[i:i + len(x)] += x[:len(sfx) - i]
     with wave.open(f"{dt}/audio/sfx.wav", "wb") as w:
@@ -493,6 +493,29 @@ def mezclar_audio(dt, eventos, total, out):
 
 
 # ----------------------------------------------------------------- principal
+def motion_graphics(f, logo, pal):
+    """Gráficos extra (graficos.py) sincronizados con palabras de la voz."""
+    def t(palabra, desde=0.0):
+        return next(p["s"] for p in pal if p["s"] >= desde
+                    and re.sub(r"[^\wáéíóúñ]", "", p["t"].lower()) == palabra)
+
+    perfil = graficos.Perfil(f, logo, t("si"), t("película") + 0.25,
+                             toque=t("otro") + 0.1)
+    enfasis = graficos.Enfasis(f, t("no", 18), t("mañana", 18) + 0.3)
+    lista = graficos.Lista(f, t("su", 21), t("años") + 0.3, [
+        (t("garantizar"), t("financiera", 21) + 0.2, "Garantizar", "la estabilidad financiera"),
+        (t("proteger"), t("patrimonio") + 0.3, "Proteger", "este patrimonio"),
+        (t("a", 27.2), t("años") - 0.1, "A lo largo", "de los años"),
+    ])
+    escena = graficos.Escena(f, t("no", 31) - 0.1, t("estos"), t("compiten") + 0.35,
+                             t("son", 33))
+    comentario = graficos.Comentario(f, logo, t("contame"), t("no", 42.5) + 0.3,
+                                     t("comentarios"), t("ahorrando") + 0.3)
+    detras = graficos.TextoDetras(f, t("seguros", 15.5) + 0.12, t("no", 18) - 0.05, "SEGUROS",
+                                  cy=690)
+    return [perfil, enfasis, lista, comentario, escena], detras, escena
+
+
 def main():
     dt, out = sys.argv[1], sys.argv[2]
     f = Fuentes(f"{dt}/fonts")
@@ -525,15 +548,20 @@ def main():
     tarjetas = Tarjetas(f)
     cierre = Cierre(logo, f)
     fuente = Fuente(f"{dt}/recortado.mov")
+    extras, detras, escena = motion_graphics(f, logo, pal)
 
     # Efectos de sonido sincronizados con lo que aparece en pantalla.
     eventos = [(0.08, "pop"), (T0 - 0.42, "whoosh")] if T0 > 0 else []
     for tc, tipo in cortes:
-        eventos.append((T0 + tc - 0.25, "whoosh") if tipo != "fundido" else
-                       (T0 + tc - 0.05, "click"))
+        if tipo == "fundido":
+            eventos.append((T0 + tc - 0.05, "click"))
+        elif tipo != "escena":
+            eventos.append((T0 + tc - 0.25, "whoosh"))
     eventos += [(T0 + ini + 0.05, "pop") for ini, _, _ in TARJETAS]
     eventos += [(t_fin_voz - 0.45, "whoosh"), (t_fin_voz + 0.1, "pop"),
                 (t_fin_voz + 0.6, "pop"), (t_fin_voz + 0.8, "click")]
+    for g in extras + [detras]:
+        eventos += [(T0 + t, k, gan) for t, k, gan in g.eventos()]
 
     enc = subprocess.Popen(
         ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
@@ -586,8 +614,19 @@ def main():
                                   0.85 * blanco)
             if barras is not None:
                 barras_verticales(img, barras)
+            if detras.activo(tv):
+                # palabra detrás de la persona: texto encima del cuadro y la persona
+                # (recortada con la misma transformación) otra vez encima del texto
+                m = encuadre(detras.mascara(arr, nv), z, menton, cx)
+                m = m.filter(ImageFilter.GaussianBlur(1.2))
+                persona = img.copy()
+                img.alpha_composite(detras.capa(tv))
+                img.paste(persona, (0, 0), m)
+            for g in extras:
+                g.dibujar(img, tv)
             tarjetas.dibujar(img, tv)
-            subs.dibujar(img, tv)
+            if not escena.ini <= tv < escena.fin:
+                subs.dibujar(img, tv)
             if abs(tv - 17.5) < 0.5 / FPS:
                 portada_src = arr.copy()
         else:
