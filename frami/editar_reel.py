@@ -499,8 +499,6 @@ def motion_graphics(f, logo, pal):
         return next(p["s"] for p in pal if p["s"] >= desde
                     and re.sub(r"[^\wáéíóúñ]", "", p["t"].lower()) == palabra)
 
-    perfil = graficos.Perfil(f, logo, t("si"), t("película") + 0.25,
-                             toque=t("otro") + 0.1)
     enfasis = graficos.Enfasis(f, t("no", 18), t("mañana", 18) + 0.3)
     lista = graficos.Lista(f, t("su", 21), t("años") + 0.3, [
         (t("garantizar"), t("financiera", 21) + 0.2, "Garantizar", "la estabilidad financiera"),
@@ -513,7 +511,7 @@ def motion_graphics(f, logo, pal):
                                      t("comentarios"), t("ahorrando") + 0.3)
     detras = graficos.TextoDetras(f, t("seguros", 15.5) + 0.12, t("no", 18) - 0.05, "SEGUROS",
                                   cy=690)
-    return [perfil, enfasis, lista, comentario, escena], detras, escena
+    return [enfasis, lista, comentario, escena], detras, escena
 
 
 def main():
