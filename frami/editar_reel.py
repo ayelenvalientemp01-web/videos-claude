@@ -3,7 +3,7 @@
 Uso: python3 editar_reel.py <dir_trabajo> <dir_salida>
 
 <dir_trabajo> debe contener: recortado.mov, segmentos.json, words_cut.json, logo.png,
-fonts/Poppins-*.ttf y audio/{musica,whoosh,pop,click}.wav (ver paso0_silencios.py y
+fonts/Poppins-*.ttf y audio/{whoosh,pop,click}.wav (ver paso0_silencios.py y
 musica_sfx.py). Escribe en <dir_salida>: frami_reel.mp4, portada.png y subtitulos.srt.
 """
 import json
@@ -26,7 +26,7 @@ BLANCO = (255, 255, 255)
 GRIS_CLARO = (244, 244, 244)
 GRIS_OSCURO = (51, 51, 51)
 
-T0 = 1.1          # inicio de la voz (después de la intro)
+T0 = 0.0          # inicio de la voz (sin intro: arranca directo con el video)
 CIERRE = 2.6
 CENTRO_CARA = (0.5, 0.40)
 TRANSICIONES = ["zoom", "barras", "whip", "fundido"]
@@ -408,11 +408,11 @@ def loudnorm_medir(path, filtro_previo=""):
 
 
 def mezclar_audio(dt, eventos, total, out):
-    """Voz procesada + música con ducking + efectos, normalizado a -14 LUFS."""
+    """Voz procesada + efectos (sin música), normalizado a -14 LUFS."""
     sr = 48000
     sfx = np.zeros(int(total * sr) + sr)
     muestras = {k: leer_wav(f"{dt}/audio/{k}.wav")[0] for k in ("whoosh", "pop", "click")}
-    ganancia = {"whoosh": 0.22, "pop": 0.28, "click": 0.2}
+    ganancia = {"whoosh": 0.1, "pop": 0.13, "click": 0.09}
     for t, k in eventos:
         x = muestras[k] * ganancia[k]
         i = int(t * sr)
@@ -426,17 +426,13 @@ def mezclar_audio(dt, eventos, total, out):
     retardo = int(T0 * 1000)
     voz = (f"[0:a]aresample=48000,highpass=f=80,afftdn=nf=-30:nr=8,"
            f"acompressor=threshold=-20dB:ratio=3:attack=5:release=90:makeup=2,"
-           f"adelay=delays={retardo}:all=1,aformat=channel_layouts=stereo,apad,atrim=0:{total:.3f},asplit=2[voz][sc]")
-    # Música: -20 dB respecto de la voz mientras habla (ducking) y más presente en intro/cierre.
-    musica = (f"[1:a]volume=-17dB,volume='if(lt(t,{T0}),2.2,if(gt(t,{T0 + 47.1:.2f}),2.2,1))'"
-              f":eval=frame,aformat=channel_layouts=stereo[mus]")
-    duck = "[mus][sc]sidechaincompress=threshold=0.03:ratio=3:attack=15:release=300[musd]"
-    mezcla = ("[voz][musd][2:a]amix=inputs=3:normalize=0:duration=first,"
+           f"adelay=delays={retardo}:all=1,aformat=channel_layouts=stereo,apad,atrim=0:{total:.3f}[voz]")
+    mezcla = ("[voz][1:a]amix=inputs=2:normalize=0:duration=first,"
               "aformat=channel_layouts=stereo[mix]")
-    fc = ";".join([voz, musica, duck, mezcla])
+    fc = ";".join([voz, mezcla])
     previa = f"{dt}/audio/mezcla_previa.wav"
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f"{dt}/recortado.mov",
-                    "-i", f"{dt}/audio/musica.wav", "-i", f"{dt}/audio/sfx.wav",
+                    "-i", f"{dt}/audio/sfx.wav",
                     "-filter_complex", fc, "-map", "[mix]", "-ar", "48000", previa], check=True)
     m = loudnorm_medir(previa)
     norm = (f"loudnorm=I=-14:TP=-1.5:LRA=11:measured_I={m['input_i']}:"
@@ -481,7 +477,7 @@ def main():
     fuente = Fuente(f"{dt}/recortado.mov")
 
     # Efectos de sonido sincronizados con lo que aparece en pantalla.
-    eventos = [(0.08, "pop"), (T0 - 0.42, "whoosh")]
+    eventos = [(0.08, "pop"), (T0 - 0.42, "whoosh")] if T0 > 0 else []
     for tc, tipo in cortes:
         eventos.append((T0 + tc - 0.25, "whoosh") if tipo != "fundido" else
                        (T0 + tc - 0.05, "click"))
@@ -491,7 +487,8 @@ def main():
 
     enc = subprocess.Popen(
         ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
-         "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+         "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "medium", "-crf", "21",
+         "-profile:v", "high", "-level", "4.1",
          "-pix_fmt", "yuv420p", "-colorspace", "bt709", "-color_primaries", "bt709",
          "-color_trc", "bt709", f"{dt}/video_sin_audio.mp4"], stdin=subprocess.PIPE)
 
@@ -544,8 +541,9 @@ def main():
             img = cierre(t - t_fin_voz)
 
         # Paneles de entrada (intro -> video) y salida (video -> cierre)
-        panel(img, t, T0 - 0.08, AMARILLO)
-        panel(img, t, T0, ROJO)
+        if T0 > 0:
+            panel(img, t, T0 - 0.08, AMARILLO)
+            panel(img, t, T0, ROJO)
         if t < t_fin_voz:
             panel(img, t, t_fin_voz - 0.16, AMARILLO)
             panel(img, t, t_fin_voz - 0.08, ROJO)
@@ -558,7 +556,8 @@ def main():
 
     mezclar_audio(dt, eventos, total, f"{dt}/audio/final.wav")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f"{dt}/video_sin_audio.mp4",
-                    "-i", f"{dt}/audio/final.wav", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k",
+                    "-i", f"{dt}/audio/final.wav", "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy",
+                    "-c:a", "aac", "-b:a", "192k", "-ac", "2", "-brand", "mp42",
                     "-movflags", "+faststart", "-shortest", f"{out}/frami_reel.mp4"], check=True)
 
     portada(portada_src, logo, f, f"{out}/portada.png")
