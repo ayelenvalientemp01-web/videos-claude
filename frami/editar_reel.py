@@ -33,6 +33,7 @@ CENTRO_CARA = (0.5, 0.40)
 MENTON_Y = 1050   # altura fija del mentón en pantalla tras el reencuadre
 CM = 142          # px por centímetro en un celular típico (1920 px ≈ 13,5 cm)
 SUB_Y = MENTON_Y + 3 * CM + 46   # subtítulos 3 cm debajo del mentón (centro del texto)
+CLIP_REFERENCIA = "3980"  # clip parada: los del escritorio se igualan a su exposición
 TRANSICIONES = ["zoom", "barras", "whip", "fundido"]
 
 TEXTO = (
@@ -281,7 +282,7 @@ class Fuente:
 
 
 def caras(path, lim, modelo):
-    """Mediana de la posición del mentón y del centro de la cara en cada segmento."""
+    """Mediana del mentón, del centro de la cara y del brillo de la cara en cada segmento."""
     import cv2
     det = cv2.FaceDetectorYN.create(modelo, "", (W // 2, H // 2), 0.7)
     cap = cv2.VideoCapture(path)
@@ -296,12 +297,14 @@ def caras(path, lim, modelo):
             if res is not None:
                 x, y, w, h = res[0][:4] * 2
                 si = next(k for k, (a, b, _) in enumerate(lim) if a <= f < b)
-                datos[si].append((y + h, x + w / 2))
+                gris = cv2.cvtColor(fr, cv2.COLOR_BGR2GRAY)
+                piel = gris[int(y + h / 4):int(y + h * 3 / 4), int(x + w / 4):int(x + w * 3 / 4)]
+                datos[si].append((y + h, x + w / 2, piel.mean()))
         f += 1
     out = []
     for d in datos:
-        d = np.array(d) if d else np.array([[MENTON_Y, W / 2]])
-        out.append((float(np.median(d[:, 0])), float(np.median(d[:, 1]))))
+        d = np.array(d) if d else np.array([[MENTON_Y, W / 2, np.nan]])
+        out.append(tuple(float(v) for v in np.median(d, axis=0)))
     return out
 
 
@@ -312,6 +315,25 @@ def encuadre(arr, z, menton, cx):
     y0 = clamp(menton - MENTON_Y / z, 0, H - ch)
     return Image.fromarray(arr).transform((W, H), Image.EXTENT, (x0, y0, x0 + cw, y0 + ch),
                                           Image.BILINEAR)
+
+
+def luts_exposicion(lim, cara):
+    """Baja la exposición de los clips cuya cara está más iluminada que la del clip de
+    referencia. Curva con gamma para oscurecer los medios sin apagar los blancos."""
+    brillo = {}
+    for (_, _, clip), (_, _, lum) in zip(lim, cara):
+        brillo.setdefault(clip, []).append(lum)
+    brillo = {c: float(np.nanmedian(v)) for c, v in brillo.items()}
+    ref = brillo[CLIP_REFERENCIA]
+    x = np.arange(256, dtype=np.float32) / 255
+    luts = {}
+    for c, lum in brillo.items():
+        if np.isnan(lum) or lum <= ref + 8:
+            continue
+        g = 1.3
+        escala = min(1.0, ref / (255 * (lum / 255) ** g))
+        luts[c] = np.clip(255 * escala * x ** g, 0, 255).astype(np.uint8)
+    return luts
 
 
 def zoom_minimo(menton):
@@ -522,6 +544,7 @@ def main():
 
     portada_src = None
     cara = caras(f"{dt}/recortado.mov", lim, f"{dt}/yunet.onnx")
+    luts = luts_exposicion(lim, cara)
     for i in range(n_total):
         t = i / FPS
         tv = t - T0
@@ -531,8 +554,10 @@ def main():
             nv = min(int(round(tv * FPS)), voz_frames - 1)
             arr = fuente.cuadro(nv)
             si = next(k for k, (a, b, _) in enumerate(lim) if a <= nv < b)
-            a, b, _ = lim[si]
-            menton, cx = cara[si]
+            a, b, clip = lim[si]
+            menton, cx, _ = cara[si]
+            if clip in luts:
+                arr = luts[clip][arr]
             # punch-in alternado entre cortes consecutivos + leve acercamiento continuo
             z = zoom_minimo(menton) + (0.0 if si % 2 == 0 else 0.08) \
                 + 0.03 * (nv - a) / max(1, b - a)
