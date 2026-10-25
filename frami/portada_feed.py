@@ -109,11 +109,11 @@ def main():
         d.line(s(x0, H + 20, x0 + 300, H - 280), fill=BLANCO + (40,), width=10 * SS)
     img.alpha_composite(bajar(c))
 
-    # Logo arriba a la izquierda
+    # Logo arriba a la derecha
     logo = Image.open(logo_p).convert("RGBA")
     lw = 170
     logo = logo.resize((lw, int(logo.height * lw / logo.width)), Image.LANCZOS)
-    img.alpha_composite(sombra_de(logo, 10, 60, (0, 6)), (78, 96))
+    img.alpha_composite(sombra_de(logo, 10, 60, (0, 6)), (W - lw - 78, 96))
 
     # Título alineado a la izquierda
     x0 = 80
