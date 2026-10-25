@@ -17,7 +17,8 @@ COLA = 0.06       # se deja después de la última palabra
 ANTES = 0.07      # se deja antes de la siguiente palabra -> respiro ~0.13 s
 PAD_INI, PAD_FIN = 0.08, 0.12
 SEG_MIN = 0.25    # descarta ruidos sueltos (golpes, chasquidos)
-FADE = 0.008      # fundido de audio en cada corte (8 ms)
+FADE = 0.008
+FPS = 30      # fundido de audio en cada corte (8 ms)
 
 
 def duracion(path):
@@ -51,7 +52,7 @@ def segmentos_de(path):
         segs.append((t, s))
         t = e
     segs.append((t, b))
-    return dur, [(round(x, 3), round(y, 3)) for x, y in segs if y - x > SEG_MIN]
+    return dur, [(round(x * FPS) / FPS, round(y * FPS) / FPS) for x, y in segs if y - x > SEG_MIN]
 
 
 def main():
@@ -64,13 +65,16 @@ def main():
     final = sum(x["fin"] - x["ini"] for x in lista)
     json.dump(lista, open(f"{out}/segmentos.json", "w"), indent=1)
 
-    entradas, filtros = [], []
+    clips = list(dict.fromkeys(x["clip"] for x in lista))
+    entradas = [a for c in clips for a in ("-i", f"{src}/{c}.mov")]
+    filtros = []
     for i, x in enumerate(lista):
+        k = clips.index(x["clip"])
         d = x["fin"] - x["ini"]
-        entradas += ["-ss", str(x["ini"]), "-t", f"{d:.3f}", "-i", f"{src}/{x['clip']}.mov"]
-        filtros.append(f"[{i}:v]setpts=PTS-STARTPTS[v{i}];"
-                       f"[{i}:a]asetpts=PTS-STARTPTS,afade=in:d={FADE},"
-                       f"afade=out:st={d - FADE:.3f}:d={FADE}[a{i}]")
+        rango = f"start={x['ini']:.6f}:end={x['fin']:.6f}"
+        filtros.append(f"[{k}:v]trim={rango},setpts=PTS-STARTPTS[v{i}];"
+                       f"[{k}:a]atrim={rango},asetpts=PTS-STARTPTS,afade=in:d={FADE},"
+                       f"afade=out:st={d - FADE:.4f}:d={FADE}[a{i}]")
     concat = "".join(f"[v{i}][a{i}]" for i in range(len(lista)))
     fc = ";".join(filtros) + f";{concat}concat=n={len(lista)}:v=1:a=1[v][a]"
     subprocess.run(["ffmpeg", "-v", "error", "-y", *entradas, "-filter_complex", fc,
