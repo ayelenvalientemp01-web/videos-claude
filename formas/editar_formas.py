@@ -174,6 +174,17 @@ def centros_cara(path, lim, modelo):
     return [tuple(np.median(np.array(d), axis=0)) if d else (W / 2, H * 0.4) for d in datos]
 
 
+def barras(base, k, colores=(gf.LIMA, gf.NARANJA, gf.OSCURO)):
+    """Barras diagonales de marca que cruzan la pantalla (k: 0..1); tapan todo en k=0.5."""
+    d = ImageDraw.Draw(base)
+    n = len(colores)
+    for i, c in enumerate(colores):
+        kk = gf.clamp(k * (1 + 0.25 * (n - 1)) - 0.25 * i)
+        e = 4 * kk ** 3 if kk < 0.5 else 1 - (-2 * kk + 2) ** 3 / 2
+        x = -W * 1.3 + W * 2.6 * e
+        d.polygon([(x, 0), (x + W * 1.1, 0), (x + W * 1.1 - 300, H), (x - 300, H)], fill=c)
+
+
 def zoom(arr, z, cx, cy):
     if z <= 1.0001:
         return Image.fromarray(arr)
@@ -244,9 +255,9 @@ def motion_graphics(f, pal, t_rapido):
         gf.NivelObjetivos(f, t("adaptamos"), t_rapido[0] - 0.05, t("nivel", 16),
                           t("objetivos"), t("cada")),
         gf.Rapido(*t_rapido),
-        gf.Generos(f, t("además"), fin_de("trainer") + 0.6, t("mujeres"), t("hombres"),
+        gf.Generos(f, t("además"), fin_de("trainer") + 0.12, t("mujeres"), t("hombres"),
                    t("personal")),
-        gf.Telefono(f, t("comunicate"), fin_de("información") + 0.3),
+        gf.Telefono(f, t("comunicate"), fin_de("información") + 0.3, cy=1660),
     ]
     detras = [
         gf.TextoDetras(f, t("formas") - 0.1, t("un", 7) - 0.05, "FORMAS", cy=860),
@@ -284,6 +295,10 @@ def main():
     caras = centros_cara(f"{dt}/recortado.mov", lim, f"{dt}/yunet.onnx")
 
     eventos = [ev for g in extras + detras for ev in g.eventos()] + cierre.eventos(t_fin)
+    # transición con barras entre el clip sentada (hombres / personal trainer) y el del número
+    t_quieres = next(p["s"] for p in pal if limpia(p["t"]) == "quieres")
+    t_barras = max(s["a"] / FPS for s in lim if s["a"] / FPS <= t_quieres)
+    eventos.append((t_barras - 0.3, "whoosh", 1.1))
 
     enc = subprocess.Popen(
         ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
@@ -305,6 +320,9 @@ def main():
                 z = (1.0 if si % 2 == 0 else 1.08) + 0.03 * (i - s["a"]) / max(1, s["b"] - s["a"])
             else:
                 z = 1.0
+            u = tv - t_barras
+            if -0.3 <= u < 0.3:  # zoom rápido que acompaña a las barras
+                z += 0.18 * (1 - abs(u) / 0.3)
             img = zoom(arr, z, cx, cy).convert("RGBA")
             for g in detras:
                 if g.activo(tv):
@@ -312,6 +330,8 @@ def main():
                     persona = img.copy()
                     img.alpha_composite(g.capa(tv))
                     img.paste(persona, (0, 0), m)
+            if -0.3 <= u < 0.3:
+                barras(img, (u + 0.3) / 0.6)
             for g in extras:
                 g.dibujar(img, tv)
             subs.dibujar(img, tv)
