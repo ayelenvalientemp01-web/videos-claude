@@ -335,9 +335,14 @@ def luts_exposicion(lim, cara):
     return luts
 
 
-def zoom_minimo(menton):
+# Zoom mínimo por clip: en el clip parada (pared blanca) deja la unión remera/jean fuera
+# de cuadro (el jean empieza en y≈1862 del original; con 1.34 queda debajo del borde).
+ZOOM_MIN_CLIP = {"3980": 1.34}
+
+
+def zoom_minimo(menton, clip=None):
     """Zoom mínimo para poder subir el mentón hasta MENTON_Y."""
-    return max(1.0, (H - MENTON_Y) / (H - menton))
+    return max(1.0, (H - MENTON_Y) / (H - menton), ZOOM_MIN_CLIP.get(clip, 1.0))
 
 
 def zoom(arr, z, cx=CENTRO_CARA[0], cy=CENTRO_CARA[1]):
@@ -585,7 +590,7 @@ def main():
             if clip in luts:
                 arr = luts[clip][arr]
             # punch-in alternado entre cortes consecutivos + leve acercamiento continuo
-            z = zoom_minimo(menton) + (0.0 if si % 2 == 0 else 0.08) \
+            z = zoom_minimo(menton, clip) + (0.0 if si % 2 == 0 else 0.08) \
                 + 0.03 * (nv - a) / max(1, b - a)
             dx, blanco, barras = 0.0, 0.0, None
             for tc, tipo in cortes:
