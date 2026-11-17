@@ -7,8 +7,8 @@ Uso: python3 editar_reel.py <dir_trabajo> <dir_salida>
 <dir_trabajo> debe contener: recortado.mov, segmentos.json, words_cut.json, logo.png,
 yunet.onnx (detector de rostros de OpenCV Zoo),
 fonts/Poppins-*.ttf y audio/{whoosh,pop,click}.wav (ver paso0_silencios.py,
-transcribir.py y musica_sfx.py). Escribe en <dir_salida>: frami_reel.mp4, portada.png y
-subtitulos.srt.
+transcribir.py y musica_sfx.py). Escribe en <dir_salida>: frami_reel.mp4 y
+subtitulos.srt (la portada se arma aparte con portada_reel.py).
 """
 import json
 import math
@@ -691,7 +691,8 @@ def main():
                     "-c:a", "aac", "-b:a", "192k", "-ac", "2", "-brand", "mp42",
                     "-movflags", "+faststart", "-shortest", f"{out}/frami_reel.mp4"], check=True)
 
-    portada(portada_src, logo, f, f"{out}/portada.png")
+    # La portada final la arma portada_reel.py; acá queda solo el cuadro de referencia.
+    Image.fromarray(portada_src).save(f"{dt}/cuadro_portada.png")
     print(f"Listo: {total:.2f} s")
 
 
