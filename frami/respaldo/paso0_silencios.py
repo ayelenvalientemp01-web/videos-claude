@@ -17,6 +17,9 @@ PAUSA_MIN = 0.4
 COLA = 0.06       # se deja después de la última palabra
 ANTES = 0.07      # se deja antes de la siguiente palabra -> respiro ~0.13 s
 PAD_INI, PAD_FIN = 0.08, 0.12
+# Inicio forzado por clip (segundos): el 3999b arranca en "Vas a ver…"; se saca el llamado
+# "Comentá la palabra respaldo, consultame y vemos qué plan podemos adaptar a tu medida".
+DESDE = {"3999b": 6.0}
 PAD_FIN_ULTIMO = 0.4  # el último clip conserva más cola (la frase final no se corta)
 SEG_MIN = 0.25    # descarta ruidos sueltos (golpes, chasquidos)
 FADE = 0.008
@@ -38,7 +41,7 @@ def silencios(path, minimo=0.2):
     return list(zip(ini, fin + [None] * (len(ini) - len(fin))))
 
 
-def segmentos_de(path, pad_fin=PAD_FIN):
+def segmentos_de(path, pad_fin=PAD_FIN, desde=0.0):
     dur = duracion(path)
     a, b = 0.0, dur
     cortes = []
@@ -54,6 +57,7 @@ def segmentos_de(path, pad_fin=PAD_FIN):
         segs.append((t, s))
         t = e
     segs.append((t, b))
+    segs = [(max(x, desde), y) for x, y in segs if y > desde]
     return dur, [(round(x * FPS) / FPS, round(y * FPS) / FPS) for x, y in segs if y - x > SEG_MIN]
 
 
@@ -61,7 +65,8 @@ def main():
     src, out = sys.argv[1], sys.argv[2]
     lista, original = [], 0.0
     for c in CLIPS:
-        dur, segs = segmentos_de(f"{src}/{c}.mov", PAD_FIN_ULTIMO if c == CLIPS[-1] else PAD_FIN)
+        dur, segs = segmentos_de(f"{src}/{c}.mov", PAD_FIN_ULTIMO if c == CLIPS[-1] else PAD_FIN,
+                                DESDE.get(c, 0.0))
         original += dur
         lista += [dict(clip=c, ini=s, fin=e) for s, e in segs]
     final = sum(x["fin"] - x["ini"] for x in lista)

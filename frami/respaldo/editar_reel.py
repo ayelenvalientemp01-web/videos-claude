@@ -34,7 +34,7 @@ GRIS_OSCURO = (51, 51, 51)
 
 T0 = 0.0          # inicio de la voz (sin intro: arranca directo con el video)
 CIERRE = 2.6
-PORTADA_TV = 74.2  # cuadro de la voz que se usa de fondo para la portada (sonrisa final)
+PORTADA_TV = 69.05 # cuadro de la voz que se usa de fondo para la portada (sonrisa final)
 CENTRO_CARA = (0.5, 0.40)
 MENTON_Y = 1050   # altura fija del mentón en pantalla tras el reencuadre
 CM = 142          # px por centímetro en un celular típico (1920 px ≈ 13,5 cm)
@@ -58,13 +58,11 @@ TEXTO = (
     "obra social o si tenés la mejor obra social, hay gastos que no están contemplados y que sí o "
     "sí tenés que hacer frente si esto te sucede. Proteger tu futuro y prevenir no es pensar en "
     "lo peor, es garantizar la tranquilidad que vas a necesitar en los momentos más difíciles. "
-    "Comentá la palabra respaldo, consultame y vemos qué plan podemos adaptar a tu medida. Vas a "
-    "ver que estar protegido y asegurarte es más económico de lo que pensás."
+    "Vas a ver que estar protegido y asegurarte es más económico de lo que pensás."
 )
 
 # Palabras que la transcripción automática oyó distinto (voseo, "hacer frente", tildes).
-CORRECCIONES = {"puedes": "podés", "ser": "hacer", "si": "sí", "comenta": "comentá",
-                "pensas": "pensás"}
+CORRECCIONES = {"puedes": "podés", "ser": "hacer", "si": "sí", "pensas": "pensás"}
 
 # Textos de apoyo: (inicio, fin) en segundos de voz, líneas [(texto, color)].
 TARJETAS = [
@@ -76,8 +74,8 @@ TARJETAS = [
                    [("para cuando ", BLANCO), ("ya no estás", AMARILLO)]]),
     (58.0, 60.0, [[("PREVENIR", AMARILLO)], [("no es pensar en lo peor", BLANCO)]]),
     (60.1, 64.4, [[("GARANTIZAR", BLANCO)], [("TRANQUILIDAD", AMARILLO)]]),
-    (67.9, 69.7, [[("PLAN ", BLANCO), ("A TU MEDIDA", AMARILLO)]]),
-    (72.3, 74.15, [[("MÁS ECONÓMICO", AMARILLO)], [("de lo que pensás", BLANCO)]]),
+    (65.45, 67.45, [[("ESTAR ", BLANCO), ("PROTEGIDO", AMARILLO)]]),
+    (67.55, 69.1, [[("MÁS ECONÓMICO", AMARILLO)], [("de lo que pensás", BLANCO)]]),
 ]
 
 
@@ -543,14 +541,12 @@ def motion_graphics(f, logo, pal):
     ], titulo="Te permite hacer frente a…")
     comparacion = graficos.Comparacion(f, t("importa"), fin("sucede") + 0.3, t("no", 47.3),
                                        t("mejor"), t("gastos"))
-    comentario = graficos.Comentario(f, logo, t("comentá") - 0.05, fin("medida") + 0.3,
-                                     t("palabra"), fin("respaldo", 65) + 0.1)
     detras = [
         graficos.TextoDetras(f, t("realidad") + 0.12, t("cáncer") + 0.2, "REALIDAD", cy=700),
         graficos.TextoDetras(f, t("respaldo", 37) - 0.1, t("permite") - 0.05, "RESPALDO",
                              cy=700),
     ]
-    return [pensamientos, alerta, frente, comparacion, comentario, escena], detras, escena
+    return [pensamientos, alerta, frente, comparacion, escena], detras, escena
 
 
 def main():
