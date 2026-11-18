@@ -33,7 +33,7 @@ GRIS_CLARO = (244, 244, 244)
 GRIS_OSCURO = (51, 51, 51)
 
 T0 = 0.0          # inicio de la voz (sin intro: arranca directo con el video)
-CIERRE = 2.6
+CIERRE = 0.0  # sin placa final de contacto: el Reel termina con la última frase
 PORTADA_TV = 69.05 # cuadro de la voz que se usa de fondo para la portada (sonrisa final)
 CENTRO_CARA = (0.5, 0.40)
 MENTON_Y = 1050   # altura fija del mentón en pantalla tras el reencuadre
@@ -591,8 +591,9 @@ def main():
         elif tipo != "escena":
             eventos.append((T0 + tc - 0.25, "whoosh"))
     eventos += [(T0 + ini + 0.05, "pop") for ini, _, _ in TARJETAS]
-    eventos += [(t_fin_voz - 0.45, "whoosh"), (t_fin_voz + 0.1, "pop"),
-                (t_fin_voz + 0.6, "pop"), (t_fin_voz + 0.8, "click")]
+    if CIERRE > 0:
+        eventos += [(t_fin_voz - 0.45, "whoosh"), (t_fin_voz + 0.1, "pop"),
+                    (t_fin_voz + 0.6, "pop"), (t_fin_voz + 0.8, "click")]
     for g in extras + detras:
         eventos += [(T0 + t, k, gan) for t, k, gan in g.eventos()]
 
@@ -671,7 +672,7 @@ def main():
         if T0 > 0:
             panel(img, t, T0 - 0.08, AMARILLO)
             panel(img, t, T0, ROJO)
-        if t < t_fin_voz:
+        if t < t_fin_voz and CIERRE > 0:
             panel(img, t, t_fin_voz - 0.16, AMARILLO)
             panel(img, t, t_fin_voz - 0.08, ROJO)
             panel(img, t, t_fin_voz, AZUL)
