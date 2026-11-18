@@ -2,7 +2,10 @@
 pregunta que engancha, espacio reservado para el sticker de encuesta (se agrega desde la app
 de Instagram) y llamado a escribir RESPALDO por mensaje. Mismo estilo que la portada del Reel.
 
-Uso: python3 flyer_historia.py <foto_recortada.png> <logo.png> <dir_fonts> <salida.png>
+Uso: python3 flyer_historia.py <foto_recortada.png> <logo.png> <dir_fonts> <salida.png> [modo]
+modo "instagram" (por defecto): recuadro para el sticker de encuesta + CTA "RESPALDO".
+modo "estado": para estados de WhatsApp que puede subir cualquier persona; sin CTA de marca,
+con las opciones A/B impresas y "Respondé este estado con A o B".
 Zonas seguras: nada importante arriba de y=250 (perfil) ni debajo de y=1650 (barra de
 mensaje).
 """
@@ -22,6 +25,7 @@ BLANCO = (255, 255, 255)
 
 # Caja reservada para el sticker de encuesta (x0, y0, x1, y1)
 ENCUESTA = (110, 975, 970, 1265)
+OPCIONES = [("A", "Con mis ahorros", AMARILLO, AZUL), ("B", "No lo había pensado", ROJO, BLANCO)]
 
 
 def fuente(d, peso, tam):
@@ -118,8 +122,43 @@ def flecha(img, p0, p1, p2, color=AMARILLO, grosor=8):
     img.alpha_composite(c.resize((W, H), Image.LANCZOS))
 
 
+def encuesta(img, fonts):
+    """Recuadro punteado para pegar el sticker de encuesta de Instagram."""
+    caja_punteada(img, ENCUESTA)
+    d = ImageDraw.Draw(img)
+    fv = fuente(fonts, "ExtraBold", 40)
+    vt = "¡VOTÁ ACÁ!"
+    d.text((W - 90, ENCUESTA[1] - 45), vt, font=fv, fill=AMARILLO, anchor="rm")
+    xa = W - 90 - fv.getlength(vt) - 22
+    flecha(img, (xa, ENCUESTA[1] - 45), (xa - 120, ENCUESTA[1] - 50), (xa - 170, ENCUESTA[1] + 40))
+
+
+def opciones(img, fonts):
+    """Opciones A/B impresas, en tarjetas de vidrio (para estados sin sticker de encuesta)."""
+    x0, y0, x1, y1 = ENCUESTA
+    alto, sep = 125, 40
+    fo = fuente(fonts, "ExtraBold", 50)
+    fl = fuente(fonts, "Black", 52)
+    for i, (letra, txt, col, fg) in enumerate(OPCIONES):
+        ya = y0 + 10 + i * (alto + sep)
+        c = Image.new("RGBA", ((x1 - x0) * SS, alto * SS), (0, 0, 0, 0))
+        dc = ImageDraw.Draw(c)
+        dc.rounded_rectangle([0, 0, (x1 - x0) * SS - 1, alto * SS - 1], radius=alto * SS // 2,
+                             fill=(255, 255, 255, 34), outline=(255, 255, 255, 150),
+                             width=3 * SS)
+        r = (alto - 30) // 2
+        cx, cy = 15 + r, alto // 2
+        dc.ellipse([(cx - r) * SS, (cy - r) * SS, (cx + r) * SS, (cy + r) * SS], fill=col)
+        c = c.resize((x1 - x0, alto), Image.LANCZOS)
+        dd = ImageDraw.Draw(c)
+        dd.text((cx, cy + 2), letra, font=fl, fill=fg, anchor="mm")
+        dd.text((cx + r + 34, cy + 2), txt, font=fo, fill=BLANCO, anchor="lm")
+        img.alpha_composite(c, (x0, ya))
+
+
 def main():
     foto, logo_p, fonts, salida = sys.argv[1:5]
+    modo = sys.argv[5] if len(sys.argv) > 5 else "instagram"
     img = fondo()
     d = ImageDraw.Draw(img)
 
@@ -147,16 +186,12 @@ def main():
     pegar_centro(img, etiqueta("LAS CUENTAS?", fuente(fonts, "Black", 84), AMARILLO, AZUL, 2.5),
                  W / 2 - 110, 815)
 
-    # Espacio para la encuesta
-    caja_punteada(img, ENCUESTA)
-    d = ImageDraw.Draw(img)
-    fv = fuente(fonts, "ExtraBold", 40)
-    vt = "¡VOTÁ ACÁ!"
-    d.text((W - 90, ENCUESTA[1] - 45), vt, font=fv, fill=AMARILLO, anchor="rm")
-    xa = W - 90 - fv.getlength(vt) - 22
-    flecha(img, (xa, ENCUESTA[1] - 45), (xa - 120, ENCUESTA[1] - 50), (xa - 170, ENCUESTA[1] + 40))
+    if modo == "estado":
+        opciones(img, fonts)
+    else:
+        encuesta(img, fonts)
 
-    # Línea de pulso al pie (decorativa, queda detrás de la barra de mensaje)
+    # Línea de pulso al pie
     c = Image.new("RGBA", (W * SS, H * SS), (0, 0, 0, 0))
     y0 = 1700
     pts = [(-20, y0), (120, y0), (150, y0 - 26), (185, y0 + 32), (225, y0 - 52), (260, y0 + 16),
@@ -176,6 +211,20 @@ def main():
     halo.paste(Image.new("RGBA", p.size, (120, 150, 255, 255)), (px, py), m)
     img.alpha_composite(halo)
     img.alpha_composite(p, (px, py))
+
+    if modo == "estado":
+        d = ImageDraw.Draw(img)
+        d.text((70, 1390), "Respondé", font=fuente(fonts, "ExtraBold", 54), fill=BLANCO,
+               anchor="lm")
+        d.text((70, 1455), "este estado", font=fuente(fonts, "ExtraBold", 54), fill=BLANCO,
+               anchor="lm")
+        fa = fuente(fonts, "Black", 54)
+        x = 70
+        for txt, col in [("con ", BLANCO), ("A", AMARILLO), (" o ", BLANCO), ("B", ROJO)]:
+            d.text((x, 1525), txt, font=fa, fill=col, anchor="lm")
+            x += fa.getlength(txt)
+        img.convert("RGB").save(salida)
+        return
 
     # Llamado a la acción (izquierda, encima de la barra de mensaje)
     d = ImageDraw.Draw(img)
