@@ -88,10 +88,11 @@ SLIDES.append(f"""
 # 5 · FOTO GRUPAL
 SLIDES.append(f"""
 <div class="full" style="background:linear-gradient(160deg,#56c2e3 0%,#7a5fa8 30%,#951b81 62%,#6d1360 100%)"></div>
-<div style="position:absolute; left:60px; right:60px; top:160px; height:820px; border-radius:40px; overflow:hidden; box-shadow:0 30px 60px rgba(0,0,0,.35); border:10px solid #fff">
+<div style="position:absolute; left:60px; right:60px; top:130px; height:760px; border-radius:40px; overflow:hidden; box-shadow:0 30px 60px rgba(0,0,0,.35); border:10px solid #fff">
   <img class="cover" src="{A}/fotos/grupo_horizontal.jpg" style="object-position:50% 62%"></div>
-<div style="position:absolute; left:80px; right:80px; top:1060px; color:#fff">
-  <h2 class="mont" style="font-weight:800; font-size:72px; line-height:1.08">Detrás de cada logro<br>hay un equipo</h2>
+<div style="position:absolute; left:80px; right:80px; top:960px; color:#fff">
+  <p class="mont" style="font-weight:600; font-size:28px; letter-spacing:6px; color:var(--celeste)">VAMOS POR MÁS</p>
+  <h2 class="mont" style="font-weight:800; font-size:68px; line-height:1.08; margin-top:20px">Que el <span style="color:var(--celeste)">2027</span> nos encuentre<br>creciendo juntos</h2>
 </div>
 """)
 
