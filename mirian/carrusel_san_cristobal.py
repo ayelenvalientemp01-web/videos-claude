@@ -69,7 +69,6 @@ SLIDES.append(f"""
   <div class="barra" style="background:var(--celeste)"></div>
   <h2 class="mont" style="font-weight:800; font-size:76px; line-height:1.05; margin-top:30px">
     Palabras, brindis<br>y <span style="color:var(--celeste)">gratitud</span></h2>
-  <p style="font-size:32px; line-height:1.45; margin-top:22px; opacity:.92">Una noche para mirar todo lo recorrido juntos.</p>
 </div>
 """)
 
@@ -79,22 +78,20 @@ SLIDES.append(f"""
   <img class="cover" src="{A}/fotos/discurso_1.jpg" style="object-position:40% 45%"></div>
 <div style="position:absolute; top:770px; left:0; right:0; bottom:0; background:#fff; border-radius:56px 56px 0 0"></div>
 <div class="slash" style="right:-60px; top:690px; width:110px; height:260px; border-radius:24px"></div>
-<div style="position:absolute; left:80px; right:160px; top:840px">
-  <div class="mont grad-text" style="font-weight:800; font-size:150px; line-height:.6; height:70px">“</div>
-  <h2 class="mont" style="font-weight:700; font-size:66px; line-height:1.12; margin-top:16px">
-    ¡Celebremos juntos todo lo que construimos en 2026!</h2>
-  <p class="mont" style="font-weight:600; font-size:26px; letter-spacing:3px; margin-top:36px; color:var(--violeta)">FIN DE AÑO · GRUPO SAN CRISTÓBAL</p>
+<div style="position:absolute; left:80px; right:80px; top:920px; white-space:nowrap">
+  <div class="barra"></div>
+  <h2 class="mont" style="font-weight:800; font-size:80px; line-height:1.08; margin-top:36px">
+    Fin de año<br><span class="grad-text">Grupo San Cristóbal</span></h2>
 </div>
 """)
 
 # 5 · FOTO GRUPAL
 SLIDES.append(f"""
 <div class="full" style="background:linear-gradient(160deg,#56c2e3 0%,#7a5fa8 30%,#951b81 62%,#6d1360 100%)"></div>
-<div style="position:absolute; left:60px; right:60px; top:150px; height:720px; border-radius:40px; overflow:hidden; box-shadow:0 30px 60px rgba(0,0,0,.35); border:10px solid #fff">
+<div style="position:absolute; left:60px; right:60px; top:160px; height:820px; border-radius:40px; overflow:hidden; box-shadow:0 30px 60px rgba(0,0,0,.35); border:10px solid #fff">
   <img class="cover" src="{A}/fotos/grupo_horizontal.jpg" style="object-position:50% 62%"></div>
-<div style="position:absolute; left:80px; right:80px; top:940px; color:#fff">
-  <h2 class="mont" style="font-weight:800; font-size:68px; line-height:1.08">Gracias por la invitación<br>y por tanto compartido</h2>
-  <p style="font-size:32px; line-height:1.45; margin-top:24px; opacity:.95">Detrás de cada logro hay un equipo que trabaja codo a codo.</p>
+<div style="position:absolute; left:80px; right:80px; top:1060px; color:#fff">
+  <h2 class="mont" style="font-weight:800; font-size:72px; line-height:1.08">Detrás de cada logro<br>hay un equipo</h2>
 </div>
 """)
 
