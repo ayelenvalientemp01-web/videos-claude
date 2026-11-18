@@ -55,28 +55,6 @@ SLIDES.append(f"""
     Celebramos<br>el fin de año con<br><span style="color:var(--celeste)">Grupo San Cristóbal</span>
   </h1>
 </div>
-<div class="mont" style="position:absolute; left:72px; bottom:64px; color:#fff; font-weight:600; font-size:24px; letter-spacing:3px; display:flex; align-items:center; gap:16px">
-  DESLIZÁ <span style="font-size:34px; line-height:0">→</span>
-</div>
-""")
-
-# 2 · MENSAJE
-SLIDES.append(f"""
-<div class="capsula" style="right:-70px; top:120px"></div>
-<div class="slash" style="left:-120px; bottom:-200px; opacity:.9"></div>
-<img src="{A}/isotipo.png" style="position:absolute; top:72px; left:80px; width:110px">
-<div style="position:absolute; left:80px; top:300px; width:720px">
-  <div class="barra"></div>
-  <h2 class="mont" style="font-weight:800; font-size:72px; line-height:1.08; margin-top:40px">
-    Un año de <span class="grad-text">desafíos, logros</span> y momentos compartidos
-  </h2>
-  <p style="font-size:36px; line-height:1.5; margin-top:44px; color:#3a3a38; width:640px">
-    <b>merece un gran cierre.</b> Por eso fuimos parte del encuentro de fin de año de
-    <b style="color:var(--violeta)">Grupo San Cristóbal</b>, rodeados de colegas y aliados que
-    acompañan nuestro trabajo todos los días.
-  </p>
-</div>
-{pagina(2)}
 """)
 
 # 3 · COLLAGE BRINDIS
@@ -93,7 +71,6 @@ SLIDES.append(f"""
     Palabras, brindis<br>y <span style="color:var(--celeste)">gratitud</span></h2>
   <p style="font-size:32px; line-height:1.45; margin-top:22px; opacity:.92">Una noche para mirar todo lo recorrido juntos.</p>
 </div>
-{pagina(3, True)}
 """)
 
 # 4 · DISCURSO + FRASE
@@ -108,7 +85,6 @@ SLIDES.append(f"""
     ¡Celebremos juntos todo lo que construimos en 2026!</h2>
   <p class="mont" style="font-weight:600; font-size:26px; letter-spacing:3px; margin-top:36px; color:var(--violeta)">FIN DE AÑO · GRUPO SAN CRISTÓBAL</p>
 </div>
-{pagina(4)}
 """)
 
 # 5 · FOTO GRUPAL
@@ -120,22 +96,6 @@ SLIDES.append(f"""
   <h2 class="mont" style="font-weight:800; font-size:68px; line-height:1.08">Gracias por la invitación<br>y por tanto compartido</h2>
   <p style="font-size:32px; line-height:1.45; margin-top:24px; opacity:.95">Detrás de cada logro hay un equipo que trabaja codo a codo.</p>
 </div>
-{pagina(5, True)}
-""")
-
-# 6 · CIERRE
-SLIDES.append(f"""
-<div class="capsula" style="left:-90px; bottom:-260px; transform:rotate(-90deg); transform-origin:center"></div>
-<div class="slash" style="right:-40px; top:-140px; height:420px"></div>
-<div class="slash" style="right:140px; top:-220px; height:420px; opacity:.55"></div>
-<div style="position:absolute; left:80px; right:80px; top:300px; text-align:center">
-  <p class="mont" style="font-weight:600; font-size:30px; letter-spacing:6px; color:var(--celeste)">VAMOS POR MÁS</p>
-  <h2 class="mont" style="font-weight:800; font-size:84px; line-height:1.05; margin-top:24px">
-    Que el <span class="grad-text">2027</span><br>nos encuentre creciendo juntos</h2>
-  <img src="{A}/logo_vertical.png" style="width:520px; margin-top:90px">
-  <p class="mont" style="font-weight:600; font-size:30px; margin-top:44px; color:var(--violeta)">@mirianolivera.seguros</p>
-</div>
-{pagina(6)}
 """)
 
 
