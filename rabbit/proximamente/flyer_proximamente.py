@@ -22,6 +22,7 @@ TITULO = [("TUS PRÓXIMOS", BLANCO, 0.72), ("ENCUENTROS", BLANCO, 1.0),
           ("TIENEN UN", BLANCO, 0.72), ("NUEVO LUGAR", ROJO, 1.0)]
 STICKER = "FALTA POCO"
 PIE = "Activá las notificaciones y enterate primero"
+PIE_HISTORIA = "No te pierdas nuestras historias y enterate primero"
 
 
 class F:
@@ -220,11 +221,14 @@ def historia(foto, f, emblema, salida):
     # la foto a pantalla completa (centrada en el cartel), desenfocada
     img = recortar(desenfocar(foto, 10), W, H, cx=0.55, cy=0.5)
     degradado(img, 0, 820, 170, arriba=True)
-    degradado(img, 1250, 1750, 230)
+    degradado(img, 1250, 1800, 235)
     centrar(img, titulo(f, 140), W / 2, 520)
     sombra_local(img, W / 2, 1060, 520, 230)
     centrar(img, sello(f, STICKER, 150, -9), W / 2, 1060)
-    centrar(img, marca(f, emblema), W / 2, 1560)
+    centrar(img, marca(f, emblema), W / 2, 1600)
+    d = ImageDraw.Draw(img)
+    d.text((W / 2, 1712), PIE_HISTORIA, font=f("Medium", 32), fill=(215, 215, 222),
+           anchor="mm")
     img.convert("RGB").save(salida)
 
 
