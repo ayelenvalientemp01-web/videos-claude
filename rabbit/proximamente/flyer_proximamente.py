@@ -1,4 +1,4 @@
-"""Flyer "¿Estás listo?" de Rabbit Food & Drinks (concepto "próximamente", sin repetir el
+"""Flyer "Tus próximos encuentros tienen un nuevo lugar" de Rabbit Food & Drinks (concepto "próximamente", sin repetir el
 "muy pronto" ya publicado). Fondo: foto de la entrada de noche.
 
 Uso: python3 flyer_proximamente.py <foto_entrada.jpg> <emblema.png> <dir_fuentes> <dir_salida>
@@ -17,7 +17,9 @@ BLANCO = (255, 255, 255)
 OSCURO = (14, 14, 16)
 
 KICKER = "SE VIENE ALGO NUEVO"
-TITULO = [("¿ESTÁS", BLANCO), ("LISTO?", ROJO)]
+# (texto, color, tamaño relativo): "NUEVO LUGAR" va en rojo y más grande
+TITULO = [("TUS PRÓXIMOS", BLANCO, 0.72), ("ENCUENTROS", BLANCO, 1.0),
+          ("TIENEN UN", BLANCO, 0.72), ("NUEVO LUGAR", ROJO, 1.0)]
 STICKER = "FALTA POCO"
 PIE = "Activá las notificaciones y enterate primero"
 
@@ -71,14 +73,20 @@ def kicker(f, tam=34):
     return sombra(im, 8, 200, (0, 3))
 
 
-def titulo(f, tam):
-    fn = f("Anton", tam)
-    lh = int(tam * 1.02)
-    w = int(max(fn.getlength(t) for t, _ in TITULO)) + 40
-    im = Image.new("RGBA", (w, lh * len(TITULO) + 40), (0, 0, 0, 0))
+def titulo(f, tam, ancho_max=980):
+    while True:
+        lineas = [(t, c, f("Anton", int(tam * r))) for t, c, r in TITULO]
+        if max(fn.getlength(t) for t, _, fn in lineas) <= ancho_max - 40 or tam < 60:
+            break
+        tam -= 4
+    alturas = [int(fn.size * 1.04) for _, _, fn in lineas]
+    w = ancho_max
+    im = Image.new("RGBA", (w, sum(alturas) + 40), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
-    for i, (t, c) in enumerate(TITULO):
-        d.text((w / 2, 20 + lh * i + lh / 2), t, font=fn, fill=c, anchor="mm")
+    y = 20
+    for (t, c, fn), lh in zip(lineas, alturas):
+        d.text((w / 2, y + lh / 2), t, font=fn, fill=c, anchor="mm")
+        y += lh
     return sombra(im, 18, 220, (0, 10))
 
 
@@ -154,8 +162,7 @@ def feed(foto, f, emblema, salida):
     img = recortar(foto, W, H, cx=0.5, cy=0.52)
     degradado(img, 0, 520, 150, arriba=True)
     degradado(img, 760, 1150, 235)
-    centrar(img, kicker(f), W / 2, 112)
-    centrar(img, titulo(f, 172), W / 2, 330)
+    centrar(img, titulo(f, 136), W / 2, 290)
     centrar(img, sticker(f, 92, -4), W / 2 + 150, 935)
     centrar(img, marca(f, emblema), W / 2, 1150)
     d = ImageDraw.Draw(img)
@@ -180,8 +187,7 @@ def historia(foto, f, emblema, salida):
     marco.alpha_composite(ft, (6, 6))
     y_foto = 735
     centrar(img, sombra(marco, 22, 200, (0, 16)), W / 2, y_foto + fh / 2)
-    centrar(img, kicker(f, 34), W / 2, 265)
-    centrar(img, titulo(f, 170), W / 2, 505)
+    centrar(img, titulo(f, 140), W / 2, 470)
     centrar(img, sticker(f, 92, -4), W / 2 + 170, y_foto + fh - 60)
     centrar(img, marca(f, emblema), W / 2, 1620)
     img.convert("RGB").save(salida)
