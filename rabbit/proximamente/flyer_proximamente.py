@@ -105,6 +105,50 @@ def sticker(f, tam=96, rot=-4):
     return sombra(im.rotate(rot, resample=Image.BICUBIC, expand=True), 16, 190, (0, 12))
 
 
+def sello(f, texto, tam=150, rot=-9, semilla=7):
+    """Sello de goma: texto Anton dentro de doble borde, con la tinta gastada."""
+    fn = f("Anton", tam)
+    tw = fn.getlength(texto)
+    pad_x, pad_y, g = 70, 44, 10
+    w, h = int(tw + 2 * pad_x), int(tam * 1.12 + 2 * pad_y)
+    s = 2
+    m = Image.new("L", (w * s, h * s), 0)
+    d = ImageDraw.Draw(m)
+    d.rounded_rectangle([0, 0, w * s - 1, h * s - 1], radius=26 * s, outline=255, width=g * s)
+    d.rounded_rectangle([(g + 12) * s, (g + 12) * s, (w - g - 12) * s, (h - g - 12) * s],
+                        radius=16 * s, outline=255, width=4 * s)
+    d.text((w * s / 2, h * s / 2 - 8 * s), texto, font=f("Anton", tam * s), fill=255,
+           anchor="mm")
+    m = m.resize((w, h), Image.LANCZOS)
+    # desgaste: huecos irregulares + grano fino, como tinta que no cargó pareja
+    rng = np.random.default_rng(semilla)
+    ruido = Image.fromarray((rng.random((h // 3 + 1, w // 3 + 1)) * 255).astype(np.uint8))
+    ruido = ruido.resize((w, h), Image.BICUBIC).filter(ImageFilter.GaussianBlur(2.2))
+    huecos = (np.asarray(ruido, np.float32) > 168).astype(np.float32)
+    grano = (rng.random((h, w)) > 0.12).astype(np.float32)
+    a = np.asarray(m, np.float32) / 255 * (1 - huecos * 0.8) * (0.82 + 0.18 * grano)
+    tinta = np.zeros((h, w, 4), np.uint8)
+    tinta[..., :3] = ROJO
+    tinta[..., 3] = (np.clip(a, 0, 1) * 245).astype(np.uint8)
+    im = Image.fromarray(tinta, "RGBA").rotate(rot, resample=Image.BICUBIC, expand=True)
+    return sombra(im, 10, 120, (0, 6))
+
+
+def sombra_local(img, cx, cy, rx, ry, alfa=150):
+    """Oscurece suave una zona elíptica (para que el sello rojo resalte sobre el cartel)."""
+    m = Image.new("L", img.size, 0)
+    ImageDraw.Draw(m).ellipse([cx - rx, cy - ry, cx + rx, cy + ry], fill=alfa)
+    m = m.filter(ImageFilter.GaussianBlur(min(rx, ry) * 0.45))
+    capa = Image.new("RGBA", img.size, OSCURO + (255,))
+    capa.putalpha(m)
+    img.alpha_composite(capa)
+
+
+def desenfocar(foto, radio):
+    """Desenfoque suave: se reconoce el cartel pero no compite con el texto."""
+    return ImageEnhance.Brightness(foto.filter(ImageFilter.GaussianBlur(radio))).enhance(0.8)
+
+
 def insignia(emblema, d=150):
     s = 3
     e = emblema.convert("RGB")
@@ -159,11 +203,12 @@ def preparar(foto):
 
 def feed(foto, f, emblema, salida):
     W, H = 1080, 1350
-    img = recortar(foto, W, H, cx=0.5, cy=0.52)
+    img = recortar(desenfocar(foto, 9), W, H, cx=0.5, cy=0.52)
     degradado(img, 0, 520, 150, arriba=True)
-    degradado(img, 760, 1150, 235)
-    centrar(img, titulo(f, 136), W / 2, 290)
-    centrar(img, sticker(f, 92, -4), W / 2 + 150, 935)
+    degradado(img, 860, 1180, 235)
+    centrar(img, titulo(f, 132), W / 2, 285)
+    sombra_local(img, W / 2, 715, 520, 230)
+    centrar(img, sello(f, STICKER, 150, -9), W / 2, 715)   # sobre el cartel
     centrar(img, marca(f, emblema), W / 2, 1150)
     d = ImageDraw.Draw(img)
     d.text((W / 2, 1272), PIE, font=f("Medium", 30), fill=(205, 205, 212), anchor="mm")
@@ -172,24 +217,14 @@ def feed(foto, f, emblema, salida):
 
 def historia(foto, f, emblema, salida):
     W, H = 1080, 1920
-    # fondo: la misma foto desenfocada y oscura
-    img = recortar(foto, W, H).filter(ImageFilter.GaussianBlur(28))
-    img = Image.blend(img, Image.new("RGBA", (W, H), OSCURO + (255,)), 0.55)
-    # la foto completa, con bordes redondeados y filete rojo
-    fw = W - 80
-    fh = int(foto.height * fw / foto.width)
-    ft = foto.resize((fw, fh), Image.LANCZOS).convert("RGBA")
-    m = Image.new("L", (fw * 2, fh * 2), 0)
-    ImageDraw.Draw(m).rounded_rectangle([0, 0, fw * 2 - 1, fh * 2 - 1], radius=56, fill=255)
-    ft.putalpha(m.resize((fw, fh), Image.LANCZOS))
-    marco = Image.new("RGBA", (fw + 12, fh + 12), (0, 0, 0, 0))
-    ImageDraw.Draw(marco).rounded_rectangle([0, 0, fw + 11, fh + 11], radius=34, fill=ROJO)
-    marco.alpha_composite(ft, (6, 6))
-    y_foto = 735
-    centrar(img, sombra(marco, 22, 200, (0, 16)), W / 2, y_foto + fh / 2)
-    centrar(img, titulo(f, 140), W / 2, 470)
-    centrar(img, sticker(f, 92, -4), W / 2 + 170, y_foto + fh - 60)
-    centrar(img, marca(f, emblema), W / 2, 1620)
+    # la foto a pantalla completa (centrada en el cartel), desenfocada
+    img = recortar(desenfocar(foto, 10), W, H, cx=0.55, cy=0.5)
+    degradado(img, 0, 820, 170, arriba=True)
+    degradado(img, 1250, 1750, 230)
+    centrar(img, titulo(f, 140), W / 2, 520)
+    sombra_local(img, W / 2, 1060, 520, 230)
+    centrar(img, sello(f, STICKER, 150, -9), W / 2, 1060)
+    centrar(img, marca(f, emblema), W / 2, 1560)
     img.convert("RGB").save(salida)
 
 
