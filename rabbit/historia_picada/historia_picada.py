@@ -22,8 +22,9 @@ from flyer_proximamente import F, ROJO, degradado, insignia, sombra  # noqa: E40
 W, H = 1080, 1920
 LINEAS = ["Tu próxima salida con amigos", "tiene nueva dirección:"]
 REMATE = "Rabbit."
-CTA = "Compartile esta historia a esa persona con la que vendrías"
-Y0 = 70          # desde qué altura (en la foto escalada a 1080 de ancho) empieza el recorte
+CTA = ["Compartile esta historia a esa persona", "con la que vendrías"]
+ZOOM = 1.17      # se acerca la foto para dejar afuera los cubiertos y la lata de la derecha
+Y0 = 280         # desde qué altura (en la foto ya acercada) empieza el recorte
 MEZCLA_IA = 0.75  # peso de la ampliación con IA frente a la Lanczos (evita textura plástica)
 
 
@@ -89,21 +90,28 @@ def main():
     foto_p, modelo, emblema_p, fuentes, salida = sys.argv[1:6]
     f = F(fuentes)
     foto = mejorar(Image.open(foto_p).convert("RGB"), modelo)
-    base = foto.crop((0, Y0, W, Y0 + H)).convert("RGBA")
+    foto = foto.resize((round(foto.width * ZOOM), round(foto.height * ZOOM)), Image.LANCZOS)
+    base = foto.crop((0, Y0, W, Y0 + H)).convert("RGBA")   # anclada a la izquierda
     base.save(salida.rsplit(".", 1)[0] + "_foto.png")   # foto sola, mejorada
     img = base.copy()
-    degradado(img, 0, 760, 222, arriba=True)   # más oscuro arriba para el texto
+    degradado(img, 0, 660, 228, arriba=True)   # más oscuro arriba para el texto
 
-    ins = insignia(Image.open(emblema_p), 84)
-    img.alpha_composite(sombra(ins, 8, 160, (0, 4)), (int(W / 2 - ins.width / 2) - 24, 268 - 24))
-
-    fl = f("Bold", 56)
-    y = 388
-    for linea in LINEAS:
-        texto_centrado(img, y, linea, fl, (255, 255, 255))
-        y += 72
-    texto_centrado(img, y + 12, REMATE, f("ExtraBold", 84), ROJO + (255,))
-    texto_centrado(img, y + 86, CTA, f("SemiBold", 28), (232, 232, 238), 235)
+    fl = f("Bold", 54)
+    texto_centrado(img, 285, LINEAS[0], fl, (255, 255, 255))
+    texto_centrado(img, 348, LINEAS[1], fl, (255, 255, 255))
+    # logo chico pegado a "Rabbit."
+    fr = f("ExtraBold", 84)
+    ins = insignia(Image.open(emblema_p), 78)
+    ancho = ins.width + 18 + fr.getlength(REMATE)
+    x0 = W / 2 - ancho / 2
+    img.alpha_composite(sombra(ins, 8, 170, (0, 4)), (int(x0) - 24, 430 - ins.height // 2 - 24))
+    capa = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    ImageDraw.Draw(capa).text((x0 + ins.width + 18, 430), REMATE, font=fr, fill=ROJO + (255,),
+                              anchor="lm")
+    img.alpha_composite(sombra(capa, 10, 190, (0, 4)).crop((30, 30, 30 + W, 30 + H)))
+    fc = f("SemiBold", 33)
+    texto_centrado(img, 503, CTA[0], fc, (255, 255, 255), 245)
+    texto_centrado(img, 544, CTA[1], fc, (255, 255, 255), 245)
     img.convert("RGB").save(salida)
 
 
