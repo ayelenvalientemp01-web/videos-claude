@@ -29,9 +29,17 @@ MEZCLA_IA = 0.75  # peso de la ampliación con IA frente a la Lanczos (evita tex
 
 
 # ----------------------------------------------------------------- mejora de la foto
+def esrgan_sesion(modelo):
+    return ort.InferenceSession(modelo, providers=["CPUExecutionProvider"])
+
+
 def esrgan(img, modelo, tile=256, solape=16):
+    """Amplía x4 con Real-ESRGAN (carga el modelo en cada llamada)."""
+    return esrgan_con(esrgan_sesion(modelo), img, tile, solape)
+
+
+def esrgan_con(ses, img, tile=256, solape=16):
     """Amplía x4 con Real-ESRGAN por bloques (para no usar demasiada memoria)."""
-    ses = ort.InferenceSession(modelo, providers=["CPUExecutionProvider"])
     nombre = ses.get_inputs()[0].name
     a = np.asarray(img.convert("RGB"), np.float32) / 255
     h, w, _ = a.shape
