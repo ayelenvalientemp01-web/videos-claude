@@ -100,8 +100,9 @@ def lineas(f, partes, tam=62, peso="ExtraBold", interlineado=1.22):
 
 
 # ----------------------------------------------------------------- video
-def leer_cuadros(path):
-    p = subprocess.Popen(["ffmpeg", "-v", "error", "-i", path, "-t", str(FIN), "-r", str(FPS),
+def leer_cuadros(path, hasta=None):
+    hasta = FIN if hasta is None else hasta
+    p = subprocess.Popen(["ffmpeg", "-v", "error", "-i", path, "-t", str(hasta), "-r", str(FPS),
                           "-f", "rawvideo", "-pix_fmt", "rgb24", "-"], stdout=subprocess.PIPE)
     out = subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v:0",
                                    "-show_entries", "stream=width,height", "-of", "csv=p=0",
