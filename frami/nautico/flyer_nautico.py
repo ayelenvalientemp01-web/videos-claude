@@ -30,7 +30,10 @@ BENEFICIOS = ["Cobertura accesible", "Contratación fácil y rápida",
 CTA = "COTIZÁ AHORA"
 WHATSAPP = "3764 886646"
 USUARIO = "@frami.productoresasesores"
-RECORTE_FOTO = 312   # alto (en la imagen original) de la parte con foto, sin los textos
+RECORTE_FOTO = None  # alto a recortar de la imagen original (None = la foto entera)
+CENTRO_X = 0.68      # centro horizontal del encuadre (padre e hijo están a la derecha)
+CON_LOGO = False     # la dueña pidió esta versión sin el logo de FRAMI
+CON_ETIQUETA = False  # ni la etiqueta "SEGUROS NÁUTICOS"
 
 
 class F:
@@ -74,7 +77,8 @@ def pildora(w, h, relleno, borde=None, grosor=3):
 # ----------------------------------------------------------------- foto
 def foto_mejorada(path, modelo):
     im = Image.open(path).convert("RGB")
-    im = im.crop((0, 0, im.width, RECORTE_FOTO))
+    if RECORTE_FOTO:
+        im = im.crop((0, 0, im.width, RECORTE_FOTO))
     im = esrgan(im, modelo)                       # x4
     im = curva_s(im, 0.08)
     im = ImageEnhance.Color(im).enhance(1.08)
@@ -94,7 +98,10 @@ def fondo(foto, W, H, alto_foto, cx=0.5, cielo=0):
                             np.float32).mean(axis=0)
         franja = np.asarray(Image.fromarray(franja[None].astype(np.uint8)).filter(
             ImageFilter.GaussianBlur(25)), np.float32)[0]
-        arriba = np.broadcast_to(franja, (cielo, W, 3)).astype(np.uint8)
+        # de la franja real (abajo) a un cielo parejo (arriba), sin manchas en las esquinas
+        parejo = franja.mean(axis=0, keepdims=True)
+        k = (np.arange(cielo, dtype=np.float32) / cielo)[:, None, None] ** 1.5
+        arriba = (parejo[None] * (1 - k) + franja[None] * k).astype(np.uint8)
         g = Image.new("RGB", (W, alto_foto))
         g.paste(Image.fromarray(arriba), (0, 0))
         g.paste(f, (0, cielo))
@@ -109,7 +116,7 @@ def fondo(foto, W, H, alto_foto, cx=0.5, cielo=0):
     g = np.array(AZUL, np.float32) * (1 - y) + np.array(AZUL_2, np.float32) * y
     img = Image.fromarray(np.broadcast_to(g, (H, W, 3)).astype(np.uint8)).convert("RGBA")
     a = np.ones((alto_foto, W), np.float32)
-    ini = int(alto_foto * 0.55)
+    ini = int(alto_foto * 0.62)
     a[ini:] = np.linspace(1, 0, alto_foto - ini)[:, None] ** 1.4
     f.putalpha(Image.fromarray((a * 255).astype(np.uint8)))
     img.alpha_composite(f)
@@ -240,11 +247,13 @@ def logo_frami(path, ancho):
 
 # ----------------------------------------------------------------- formatos
 def armar(foto, f, logo_p, W, H, alto_foto, y_titulo, tam_titulo, salida, k=1.0, cielo=0):
-    img = fondo(foto, W, H, alto_foto, cx=0.5, cielo=cielo)
+    img = fondo(foto, W, H, alto_foto, cx=CENTRO_X, cielo=cielo)
     m = 70
-    pegar(img, logo_frami(logo_p, 120), W - m - 120, 52 if H < 1600 else 250, radio=10,
-          alfa=120)
-    pegar(img, etiqueta(f, int(26 * k)), m, 74 if H < 1600 else 272, radio=8, alfa=90)
+    if CON_LOGO:
+        pegar(img, logo_frami(logo_p, 120), W - m - 120, 52 if H < 1600 else 250, radio=10,
+              alfa=120)
+    if CON_ETIQUETA:
+        pegar(img, etiqueta(f, int(26 * k)), m, 74 if H < 1600 else 272, radio=8, alfa=90)
     t = titulo(f, tam_titulo)
     pegar(img, t, m, y_titulo, radio=16, alfa=170)
     y = y_titulo + t.height + 40
@@ -269,7 +278,7 @@ def main():
     path, modelo, logo_p, fuentes, salida = sys.argv[1:6]
     f = F(fuentes)
     foto = foto_mejorada(path, modelo)
-    fin_feed = armar(foto, f, logo_p, 1080, 1350, 880, 560, 76,
+    fin_feed = armar(foto, f, logo_p, 1080, 1350, 960, 640, 74,
                      f"{salida}/frami_nautico_feed.png")
     fin_hist = armar(foto, f, logo_p, 1080, 1920, 1240, 900, 92,
                      f"{salida}/frami_nautico_historia.png", k=1.14, cielo=230)
