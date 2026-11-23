@@ -232,6 +232,57 @@ def tarjeta_vidrio(base, f, x, y, w, k=1.0):
     base.alpha_composite(capa, caja[:2])
 
 
+def nube(base, y_top, k=1.0):
+    """Nube azul que sube desde abajo: borde superior hecho de 'bollos' redondeados, con
+    una segunda nube más clara detrás para dar profundidad."""
+    W, H = base.size
+    capas = [((40, 60, 175), y_top - int(26 * k), 11), (AZUL, y_top, 7)]
+    for color, y0, semilla in capas:
+        rng = np.random.default_rng(semilla)
+        c = Image.new("L", (W * SS, H * SS), 0)
+        d = ImageDraw.Draw(c)
+        d.rectangle([0, (y0 + 48 * k) * SS, W * SS, H * SS], fill=255)
+        x = -40
+        while x < W + 60:
+            r = rng.uniform(48, 82) * k
+            cy = y0 + 48 * k + rng.uniform(-12, 14) * k
+            d.ellipse([(x - r) * SS, (cy - r) * SS, (x + r) * SS, (cy + r) * SS], fill=255)
+            x += r * rng.uniform(1.15, 1.45)
+        m = c.resize((W, H), Image.LANCZOS)
+        sombra_ = Image.new("RGBA", (W, H), (0, 0, 30, 0))
+        sombra_.putalpha(m.filter(ImageFilter.GaussianBlur(26)).point(lambda v: v * 90 // 255))
+        base.alpha_composite(sombra_, (0, -10))
+        capa = Image.new("RGBA", (W, H), color + (255,))
+        capa.putalpha(m)
+        base.alpha_composite(capa)
+
+
+def info_nube(base, f, x, y, k=1.0):
+    """'Visitanos en la oficina', dirección, horario y WhatsApp, en blanco sobre la nube."""
+    W, _ = base.size
+    capa = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(capa)
+    d.text((x, y), "Visitanos en la oficina", font=f("Bold", int(42 * k)), fill=BLANCO,
+           anchor="lm")
+    fl = f("Medium", int(29 * k))
+    for n, (icono, texto) in enumerate((("pin", DIRECCION), ("reloj", HORARIO))):
+        cy = y + int((60 + n * 48) * k)
+        r = int(19 * k)
+        (icono_pin if icono == "pin" else icono_reloj)(d, x + r, cy, r)
+        d.text((x + 2 * r + int(18 * k), cy), texto, font=fl, fill=(225, 230, 255), anchor="lm")
+    yc = y + int(166 * k)
+    rw = int(19 * k)
+    cx = x + rw
+    d.ellipse([cx - rw, yc - rw, cx + rw, yc + rw], fill=VERDE_WA)
+    d.arc([cx - rw * 0.5, yc - rw * 0.5, cx + rw * 0.5, yc + rw * 0.5], 100, 260, fill=BLANCO,
+          width=max(3, int(rw * 0.22)))
+    d.text((cx + rw + int(16 * k), yc), WHATSAPP, font=f("Bold", int(32 * k)), fill=BLANCO,
+           anchor="lm")
+    d.text((W - x, yc), USUARIO, font=f("Medium", int(24 * k)), fill=(190, 200, 255),
+           anchor="rm")
+    base.alpha_composite(capa)
+
+
 # ----------------------------------------------------------------- armado
 def armar(foto, f, logo_p, W, H, cielo, y_titulo, y_tarjeta, salida, k=1.0, y_logo=56):
     img = fondo(foto, W, H, cielo)
@@ -241,12 +292,10 @@ def armar(foto, f, logo_p, W, H, cielo, y_titulo, y_tarjeta, salida, k=1.0, y_lo
     # el arco (que se abre hacia la izquierda) queda siempre a la derecha del título
     cx = max(W - 95 * k, m + t.width + 24 + r * 1.22)
     detalles_cielo(img, cx, y_titulo + 120 * k, r)
-    lg = Image.open(logo_p).convert("RGBA")
-    lw = int(112 * k)
-    lg = lg.resize((lw, round(lg.height * lw / lg.width)), Image.LANCZOS)
-    pegar(img, lg, m, y_logo, radio=10, alfa=110)
+    # sin el logo de FRAMI (pedido de la clienta)
     pegar(img, t, m, y_titulo, radio=18, alfa=190)
-    tarjeta_vidrio(img, f, m - 10, y_tarjeta, W - 2 * (m - 10), k)
+    nube(img, y_tarjeta, k)
+    info_nube(img, f, m, y_tarjeta + int(92 * k), k)
     img.convert("RGB").save(salida)
 
 
@@ -254,9 +303,9 @@ def main():
     foto_p, logo_p, fuentes, salida = sys.argv[1:5]
     f = F(fuentes)
     foto = retocar(Image.open(foto_p).convert("RGB"))
-    armar(foto, f, logo_p, 1080, 1350, 330, 250, 1030,
+    armar(foto, f, logo_p, 1080, 1350, 170, 70, 1052,
           f"{salida}/frami_semana_oficina_feed.png")
-    armar(foto, f, logo_p, 1080, 1920, 520, 450, 1330,
+    armar(foto, f, logo_p, 1080, 1920, 400, 265, 1392,
           f"{salida}/frami_semana_oficina_historia.png", k=1.08, y_logo=250)
 
 
