@@ -28,6 +28,8 @@ CARTEL_CERRADO = (724, 772, 782, 816)   # caja del cartel "Cerrado" en la foto o
 ANCHO_UTIL = 1125                        # a la derecha está la bandera de Rapipago
 DIAS = ["LUN", "MAR", "MIÉ", "JUE", "VIE"]
 WHATSAPP = "3764 886646"
+DIRECCION = "[DIRECCIÓN]"     # completar con la dirección de la oficina
+HORARIO = "[HORARIO]"         # completar con el horario de atención
 USUARIO = "@frami.productoresasesores"
 
 
@@ -138,11 +140,11 @@ def titulo(f, tam):
     f1 = f("ExtraBold", tam)
     f2 = f("DancingScript-Bold", int(tam * 1.5))
     w = int(max(f1.getlength("¡Arrancamos"), f2.getlength("la semana!") + tam * 0.6)) + 40
-    h = int(tam * 2.75)
+    h = int(tam * 2.45)
     im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
     d.text((0, tam * 0.6), "¡Arrancamos", font=f1, fill=BLANCO, anchor="lm")
-    d.text((tam * 0.55, tam * 1.85), "la semana!", font=f2, fill=AMARILLO, anchor="lm")
+    d.text((tam * 0.55, tam * 1.52), "la semana!", font=f2, fill=AMARILLO, anchor="lm")
     return im.crop(im.getbbox())
 
 
@@ -166,6 +168,13 @@ def dias(f, tam=24):
     return im
 
 
+def icono_pin(d, cx, cy, r):
+    d.ellipse([cx - r, cy - r * 1.15, cx + r, cy + r * 0.85], fill=AMARILLO)
+    d.polygon([(cx - r * 0.72, cy + r * 0.35), (cx + r * 0.72, cy + r * 0.35),
+               (cx, cy + r * 1.45)], fill=AMARILLO)
+    d.ellipse([cx - r * 0.38, cy - r * 0.53, cx + r * 0.38, cy + r * 0.23], fill=AZUL)
+
+
 def icono_reloj(d, cx, cy, r):
     d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=AMARILLO)
     d.ellipse([cx - r * 0.66, cy - r * 0.66, cx + r * 0.66, cy + r * 0.66], outline=AZUL,
@@ -176,7 +185,7 @@ def icono_reloj(d, cx, cy, r):
 
 def tarjeta_vidrio(base, f, x, y, w, k=1.0):
     """Tarjeta de vidrio esmerilado con 'Ya estamos atendiendo' y el contacto."""
-    h = int(250 * k)
+    h = int(300 * k)
     caja = (int(x), int(y), int(x + w), int(y + h))
     fondo_ = base.crop(caja).filter(ImageFilter.GaussianBlur(24))
     m = Image.new("L", (w * SS, h * SS), 0)
@@ -195,26 +204,31 @@ def tarjeta_vidrio(base, f, x, y, w, k=1.0):
                          fill=(14, 18, 90, 150), outline=(255, 255, 255, 120), width=2 * SS)
     capa = capa.resize((w, h), Image.LANCZOS)
     d = ImageDraw.Draw(capa)
-    r = int(46 * k)
-    icono_reloj(d, int(40 * k) + r, int(h * 0.36), r)
-    tx = int(40 * k) + 2 * r + int(28 * k)
-    d.text((tx, int(h * 0.27)), "Ya estamos atendiendo", font=f("Bold", int(44 * k)),
+    x0 = int(40 * k)
+    d.text((x0, int(52 * k)), "Visitanos en la oficina", font=f("Bold", int(44 * k)),
            fill=BLANCO, anchor="lm")
-    d.text((tx, int(h * 0.48)), "Visitanos en la oficina o escribinos",
-           font=f("Medium", int(28 * k)), fill=(215, 222, 255), anchor="lm")
-    # línea fina y contacto
-    yl = int(h * 0.64)
-    d.line([(int(40 * k), yl), (w - int(40 * k), yl)], fill=(255, 255, 255, 60), width=2)
-    yc = int(h * 0.82)
-    rw = int(20 * k)
-    cx = int(40 * k) + rw
+    fl = f("Medium", int(30 * k))
+    for n, (icono, texto) in enumerate((("pin", DIRECCION), ("reloj", HORARIO))):
+        cy = int((118 + n * 58) * k)
+        r = int(19 * k)
+        if icono == "pin":
+            icono_pin(d, x0 + r, cy, r)
+        else:
+            icono_reloj(d, x0 + r, cy, r)
+        d.text((x0 + 2 * r + int(18 * k), cy), texto, font=fl, fill=(225, 230, 255),
+               anchor="lm")
+    yl = int(214 * k)
+    d.line([(x0, yl), (w - x0, yl)], fill=(255, 255, 255, 60), width=2)
+    yc = int(256 * k)
+    rw = int(19 * k)
+    cx = x0 + rw
     d.ellipse([cx - rw, yc - rw, cx + rw, yc + rw], fill=VERDE_WA)
     d.arc([cx - rw * 0.5, yc - rw * 0.5, cx + rw * 0.5, yc + rw * 0.5], 100, 260, fill=BLANCO,
           width=max(3, int(rw * 0.22)))
-    fn = f("Bold", int(34 * k))
-    d.text((cx + rw + int(16 * k), yc), WHATSAPP, font=fn, fill=BLANCO, anchor="lm")
-    d.text((w - int(40 * k), yc), USUARIO, font=f("Medium", int(24 * k)),
-           fill=(190, 200, 255), anchor="rm")
+    d.text((cx + rw + int(16 * k), yc), WHATSAPP, font=f("Bold", int(32 * k)), fill=BLANCO,
+           anchor="lm")
+    d.text((w - x0, yc), USUARIO, font=f("Medium", int(24 * k)), fill=(190, 200, 255),
+           anchor="rm")
     base.alpha_composite(capa, caja[:2])
 
 
@@ -232,8 +246,6 @@ def armar(foto, f, logo_p, W, H, cielo, y_titulo, y_tarjeta, salida, k=1.0, y_lo
     lg = lg.resize((lw, round(lg.height * lw / lg.width)), Image.LANCZOS)
     pegar(img, lg, m, y_logo, radio=10, alfa=110)
     pegar(img, t, m, y_titulo, radio=18, alfa=190)
-    dd = dias(f, int(24 * k))
-    pegar(img, dd, m, y_titulo + t.height + int(36 * k), radio=10, alfa=120)
     tarjeta_vidrio(img, f, m - 10, y_tarjeta, W - 2 * (m - 10), k)
     img.convert("RGB").save(salida)
 
@@ -242,9 +254,9 @@ def main():
     foto_p, logo_p, fuentes, salida = sys.argv[1:5]
     f = F(fuentes)
     foto = retocar(Image.open(foto_p).convert("RGB"))
-    armar(foto, f, logo_p, 1080, 1350, 330, 232, 1078,
+    armar(foto, f, logo_p, 1080, 1350, 330, 250, 1030,
           f"{salida}/frami_semana_oficina_feed.png")
-    armar(foto, f, logo_p, 1080, 1920, 520, 430, 1395,
+    armar(foto, f, logo_p, 1080, 1920, 520, 450, 1330,
           f"{salida}/frami_semana_oficina_historia.png", k=1.08, y_logo=250)
 
 
