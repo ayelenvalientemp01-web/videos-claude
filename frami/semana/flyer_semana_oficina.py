@@ -28,8 +28,8 @@ CARTEL_CERRADO = (724, 772, 782, 816)   # caja del cartel "Cerrado" en la foto o
 ANCHO_UTIL = 1125                        # a la derecha está la bandera de Rapipago
 DIAS = ["LUN", "MAR", "MIÉ", "JUE", "VIE"]
 WHATSAPP = "3764 886646"
-DIRECCION = "[DIRECCIÓN]"     # completar con la dirección de la oficina
-HORARIO = "[HORARIO]"         # completar con el horario de atención
+DIRECCION = "Las Rosas 10976"
+HORARIO = "De 9 a 12 h y de 17 a 20 h"
 USUARIO = "@frami.productoresasesores"
 
 
