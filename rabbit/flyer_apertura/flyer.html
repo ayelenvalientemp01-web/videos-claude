@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Rabbit Apertura</title>
+<link rel="stylesheet" href="fonts/local.css">
+<style>
+  :root { --red:#ff1f2d; --red2:#c3000f; --cream:#f3ead8; --w:1080px; --h:1350px; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { background:#000; }
+  .flyer { position:relative; width:var(--w); height:var(--h); overflow:hidden; background:#050505; color:#fff; font-family:'Archivo',sans-serif; }
+
+  /* ---------- foto ---------- */
+  .photo { position:absolute; left:50%; transform:translateX(-50%); width:var(--photo-w); top:var(--photo-top); filter:saturate(1.15) contrast(1.08); }
+  .shade { position:absolute; inset:0;
+    background:
+      linear-gradient(180deg,#050505 0%,#050505 var(--fade-a),rgba(5,5,5,0) var(--fade-b),rgba(5,5,5,0) var(--fade-c),rgba(5,5,5,.88) var(--fade-d),#050505 var(--fade-e)),
+      radial-gradient(ellipse 70% 30% at 50% var(--glow-y),rgba(255,31,45,.20),transparent 70%); }
+  .grain { position:absolute; inset:0; opacity:.09; mix-blend-mode:overlay; }
+
+  /* ---------- cabecera ---------- */
+  .top { position:absolute; top:var(--top-y); left:0; right:0; text-align:center; }
+  .kicker { display:inline-flex; align-items:center; gap:18px; font-weight:800; font-size:30px; letter-spacing:.32em; color:var(--cream); }
+  .kicker i { width:56px; height:4px; background:var(--red); display:block; }
+  .h1 { font-family:'Anton'; font-size:var(--h1); line-height:.86; letter-spacing:.01em; margin-top:16px; text-transform:uppercase;
+        text-shadow:0 8px 40px rgba(0,0,0,.6); }
+  .h2 { font-family:'Anton'; font-size:var(--h2); line-height:1; letter-spacing:.05em; margin-top:10px; text-transform:uppercase; }
+  .h2 .o { color:transparent; -webkit-text-stroke:2.5px #fff; }
+  .h2 .r { color:var(--red); }
+
+  /* ---------- bloque banda ---------- */
+  .band { position:absolute; left:0; right:0; top:var(--band-y); text-align:center; }
+  .live { display:inline-flex; align-items:center; gap:14px; background:var(--red); color:#fff; font-weight:800; font-size:28px;
+          letter-spacing:.22em; padding:12px 26px 12px 22px; border-radius:6px; transform:skewX(-8deg); box-shadow:0 10px 40px rgba(255,31,45,.45); }
+  .live span { transform:skewX(8deg); display:inline-flex; align-items:center; gap:14px; }
+  .live b { width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 0 0 5px rgba(255,255,255,.3); }
+  .mad { display:block; margin:var(--mad-gap) auto 0; width:var(--mad-w); height:auto; overflow:visible; }
+  .sub { margin-top:6px; font-weight:700; font-size:30px; letter-spacing:.42em; color:var(--cream); text-transform:uppercase; }
+  .sub em { color:var(--red); font-style:normal; }
+
+  /* ---------- datos ---------- */
+  .info { position:absolute; left:48px; right:48px; bottom:var(--info-b); display:grid; grid-template-columns:1.25fr .8fr 1.35fr;
+          border-top:2px solid rgba(255,255,255,.18); padding-top:30px; }
+  .cell { text-align:center; padding:0 10px; }
+  .cell + .cell { border-left:2px solid rgba(255,255,255,.18); }
+  .lab { font-weight:700; font-size:20px; letter-spacing:.3em; color:rgba(243,234,216,.6); }
+  .val { font-family:'Anton'; font-size:58px; line-height:1.1; margin-top:6px; letter-spacing:.02em; }
+  .val .r { color:var(--red); }
+  .foot { position:absolute; left:0; right:0; bottom:var(--foot-b); text-align:center; font-weight:700; font-size:22px; letter-spacing:.34em; color:rgba(243,234,216,.55); }
+
+  /* ---------- formato story ---------- */
+  .story { --w:1080px; --h:1920px; }
+</style>
+</head>
+<body>
+<div class="flyer" id="f">
+  <img class="photo" src="foto_local.jpg" alt="">
+  <div class="shade"></div>
+  <svg class="grain" width="100%" height="100%"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>
+
+  <div class="top">
+    <div class="kicker"><i></i>ESTE SÁBADO<i></i></div>
+    <div class="h1">Abrimos</div>
+    <div class="h2"><span class="o">nuestras</span> <span class="r">puertas</span></div>
+  </div>
+
+  <div class="band">
+    <div class="live"><span><b></b>EN VIVO</span></div>
+    <!-- Logo M.A.D recreado (reemplazable por el PNG original de la banda) -->
+    <svg class="mad" viewBox="0 0 900 330">
+      <defs>
+        <filter id="distress" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency=".045" numOctaves="4" seed="7" result="big"/>
+          <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="1" seed="3" result="fine"/>
+          <feComposite in="big" in2="fine" operator="arithmetic" k2=".75" k3=".28" k4="-.1" result="mix"/>
+          <feColorMatrix in="mix" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -12 6.6" result="holes"/>
+          <feComposite in="SourceGraphic" in2="holes" operator="in"/>
+        </filter>
+        <filter id="glow" x="-30%" y="-40%" width="160%" height="180%"><feGaussianBlur stdDeviation="28"/></filter>
+        <mask id="cracks">
+          <rect width="900" height="330" fill="#fff"/>
+          <g stroke="#000" stroke-linecap="square">
+            <path d="M40 120 L300 92 L520 140 L880 104" stroke-width="7" fill="none"/>
+            <path d="M0 236 L210 214 L470 250 L900 220" stroke-width="5" fill="none"/>
+            <path d="M150 0 L176 140 L132 330" stroke-width="5" fill="none"/>
+            <path d="M462 0 L438 170 L478 330" stroke-width="4" fill="none"/>
+            <path d="M760 0 L742 120 L790 330" stroke-width="6" fill="none"/>
+            <path d="M600 150 L700 60" stroke-width="3" fill="none"/>
+            <path d="M260 300 L330 200" stroke-width="3" fill="none"/>
+          </g>
+        </mask>
+      </defs>
+      <text x="450" y="290" text-anchor="middle" font-family="Archivo Black" font-size="300" letter-spacing="-6" fill="#ff1f2d" opacity=".45" filter="url(#glow)">M.A.D</text>
+      <g mask="url(#cracks)">
+        <text x="450" y="290" text-anchor="middle" font-family="Archivo Black" font-size="300" letter-spacing="-6" fill="#1a1414" opacity=".85" transform="rotate(-2 450 165)">M.A.D</text>
+        <text x="450" y="290" text-anchor="middle" font-family="Archivo Black" font-size="300" letter-spacing="-6" fill="#f6f2ea" filter="url(#distress)" transform="rotate(-2 450 165)">M.A.D</text>
+      </g>
+      <path d="M150 312 L760 300 L752 318 L142 326 Z" fill="#ff1f2d"/>
+    </svg>
+    <div class="sub">Música <em>en vivo</em> · Gran apertura</div>
+  </div>
+
+  <div class="info">
+    <div class="cell"><div class="lab">FECHA</div><div class="val">SÁB <span class="r">28/11</span></div></div>
+    <div class="cell"><div class="lab">HORA</div><div class="val">19 HS</div></div>
+    <div class="cell"><div class="lab">DÓNDE</div><div class="val">LAVALLE 3288</div></div>
+  </div>
+  <div class="foot">RABBIT · FOOD &amp; DRINKS · EVENTOS</div>
+</div>
+
+<script>
+  const story = new URLSearchParams(location.search).get('f') === 'story';
+  const f = document.getElementById('f');
+  const vars = story ? {
+    '--h':'1920px','--photo-w':'1300px','--photo-top':'-230px','--top-y':'150px','--h1':'250px','--h2':'92px',
+    '--fade-a':'17%','--fade-b':'28%','--fade-c':'46%','--fade-d':'60%','--fade-e':'70%','--glow-y':'64%',
+    '--band-y':'1010px','--mad-w':'900px','--mad-gap':'22px','--info-b':'230px','--foot-b':'150px'
+  } : {
+    '--photo-w':'1120px','--photo-top':'-300px','--top-y':'44px','--h1':'196px','--h2':'74px',
+    '--fade-a':'14%','--fade-b':'30%','--fade-c':'44%','--fade-d':'58%','--fade-e':'68%','--glow-y':'72%',
+    '--band-y':'660px','--mad-w':'860px','--mad-gap':'14px','--info-b':'84px','--foot-b':'34px'
+  };
+  for (const [k,v] of Object.entries(vars)) f.style.setProperty(k,v);
+</script>
+</body>
+</html>
