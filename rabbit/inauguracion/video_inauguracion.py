@@ -11,8 +11,9 @@ Estructura tomada de la referencia (TikTok) y rediseñada con la marca de Rabbit
   11.5-17.0 "GRAN APERTURA" + "SÁBADO 28 · 19 HS" con cortes rápidos
   17.0-20.0 placa final con marca, fecha, hora y dirección
 
-Uso: python3 video_inauguracion.py <dir_fotos> <minigolf.mp4> <kids.mp4> <insignia.png>
+Uso: python3 video_inauguracion.py <dir_fotos> <minigolf.mp4> <kids.mp4> <dir_logo>
                                    <dir_fuentes> <musica.wav> <salida_base>
+<dir_logo> debe tener emblema_rabbit.png y logo_rabbit.png (logo original sin fondo).
 Genera <salida_base>.mp4 (con música original), <salida_base>_sin_musica.mp4 y
 <salida_base>_portada.png.
 """
@@ -225,7 +226,7 @@ def leer_video(path, ini, dur, cx=0.5, cy=0.5):
 
 # ----------------------------------------------------------------- principal
 def main():
-    dir_fotos, v_golf, v_kids, insignia_p, fuentes, musica, salida = sys.argv[1:8]
+    dir_fotos, v_golf, v_kids, dir_logo, fuentes, musica, salida = sys.argv[1:8]
     f = F(fuentes)
     fotos = {}
     for k, (archivo, (cx, cy)) in FOTOS.items():
@@ -234,7 +235,9 @@ def main():
         fotos[k] = cubrir(ImageEnhance.Color(im).enhance(1.1), cx, cy)
     golf = leer_video(v_golf, 0.0, 5.2, 0.5, 0.5)
     kids = leer_video(v_kids, 6.0, 2.0, 0.5, 0.5)
-    insignia = Image.open(insignia_p).convert("RGBA")
+    insignia = Image.open(os.path.join(dir_logo, "emblema_rabbit.png")).convert("RGBA")
+    logo = Image.open(os.path.join(dir_logo, "logo_rabbit.png")).convert("RGBA")
+    logo = logo.resize((900, round(logo.height * 900 / logo.width)), Image.LANCZOS)
 
     # piezas de texto fijas
     numeros = {n: texto(f("Anton", 980), str(n), ROJO, sombra=True) for n in (3, 2, 1)}
@@ -248,8 +251,6 @@ def main():
     sup = etiqueta_roja(f, f"{DIA} 28 · {HORA}", 44)
     sup_ext = texto(f("SemiBold", 34), "FOOD & DRINKS · EVENTOS", CREMA)
     # placa final
-    rabbit = texto(f("SemiBold", 200), "Rabbit", ROJO)
-    sub = texto(f("Bold", 34), "FOOD & DRINKS - EVENTOS", BLANCO, espaciado=2)
     p_gran = texto(f("ExtraBold", 76), "GRAN APERTURA", BLANCO)
     p_fecha = texto(f("SemiBold", 44), FECHA_LARGA, CREMA)
     p_dir = texto(f("Medium", 36), DIRECCION, (200, 200, 210))
@@ -331,7 +332,7 @@ def main():
                     ImageFilter.GaussianBlur(12))
                 img = luz(img, 0.5, 30, 1.2 * (1 - eo(u * 2)), (255, 150, 90))
                 img = destello(img, 1 - eo(u / 0.18))
-                pegar(texto_capa, insignia, W / 2, 880, 0.55 + 0.25 * eback(u / 0.45), 1)
+                pegar(texto_capa, insignia, W / 2, 860, 0.8 + 0.3 * eback(u / 0.45), 1)
                 pegar(texto_capa, sup_ext, W / 2, 1210, 1, eo((u - 0.3) / 0.4))
             elif t < 17.0:                                # GRAN APERTURA con cortes
                 j = max(k for k, (tc, _) in enumerate(cortes_h) if t >= tc)
@@ -368,19 +369,7 @@ def main():
                 base += g[..., None] * np.array((90, 0, 8), np.float32)
                 img = Image.fromarray(base.astype(np.uint8))
                 img = destello(img, 1 - eo(u / 0.25))
-                pegar(texto_capa, insignia, W / 2, 560, 0.45 * eback(u / 0.5), clamp(u * 4))
-                pegar(texto_capa, rabbit, W / 2, 860, 0.85 + 0.15 * eback((u - 0.2) / 0.45),
-                      clamp((u - 0.2) * 4))
-                ks = clamp((u - 0.45) / 0.4)
-                if ks > 0:
-                    pegar(texto_capa, sub, W / 2, 1010, 1, ks)
-                    d = ImageDraw.Draw(texto_capa)
-                    lw = 90 * eo(ks)
-                    d.rounded_rectangle([W / 2 - sub.width / 2 - 10 - lw, 1008,
-                                         W / 2 - sub.width / 2 - 10, 1016], radius=4, fill=VERDE)
-                    d.rounded_rectangle([W / 2 + sub.width / 2 + 10, 1008,
-                                         W / 2 + sub.width / 2 + 10 + lw, 1016], radius=4,
-                                        fill=ROJO)
+                pegar(texto_capa, logo, W / 2, 800, 0.8 + 0.2 * eback(u / 0.5), clamp(u * 4))
                 for k_, (pieza, y, t0) in enumerate(((p_gran, 1150, 0.7), (p_fecha, 1245, 0.85),
                                                      (p_dir, 1315, 1.0), (p_te, 1430, 1.2))):
                     kk = (u - t0) / 0.4
